@@ -1,12 +1,9 @@
 // ===== COMの技選択の確率計算 (チェック1→3→2 をそのまま実行し、乱数の分岐は確率で足し合わせる) =====
-function makeSim(D, INF){
+// P: 自分のパーティ(engine.js の makeInfer と同じもの)
+function makeSim(D, INF, P){
   const AI = D.ai, MV = D.moves, SL = AI.script.lines, LB = AI.script.labels;
   const RAT = [[10,40],[10,35],[10,30],[10,25],[10,20],[10,15],[10,10],[15,10],[20,10],[25,10],[30,10],[35,10],[40,10]];
-  const OUR = {
-    moltres: {types:['FIRE','FLYING'], max:177, def:110, spd:128, spe:154, level:50, abil:[['PRESSURE',1]], gender:[['MON_GENDERLESS',1]]},
-    steelix: {types:['STEEL','GROUND'], max:182, def:246, spd:114, spe:48, level:50, abil:[['STURDY',.5],['ROCK_HEAD',.5]], gender:[['MON_MALE',1]]},
-    shedinja:{types:['BUG','GHOST'], max:1, def:59, spd:45, spe:36, level:45, abil:[['WONDER_GUARD',1]], gender:[['MON_GENDERLESS',1]]},
-  };
+  const OUR = P;
   const NUM = {FALSE:0, TRUE:1, ITEM_NONE:0, MOVE_NONE:0};
   const val = x => (x in NUM) ? NUM[x] : (/^-?\d+$/.test(x) ? +x : x);
   const EFF = {AI_EFFECTIVENESS_x0:0, AI_EFFECTIVENESS_x0_25:10, AI_EFFECTIVENESS_x0_5:20, AI_EFFECTIVENESS_x1:40, AI_EFFECTIVENESS_x2:80, AI_EFFECTIVENESS_x4:160};
@@ -101,7 +98,8 @@ function makeSim(D, INF){
           case 'if_target_taunted': pc++; continue;
           case 'if_not_double_battle': pc = LB[a[0]]; continue;
           case 'if_double_battle': pc++; continue;
-          case 'if_ability': branch(false, a[2]); continue;
+          // check_ability: 相手の特性は、特性が1つだけの種族のときしか「持っている」と答えない(2つある種族は「分からない」)
+          case 'if_ability': branch(a[0] === 'AI_TARGET' && T.abil.length === 1 && 'ABILITY_' + T.abil[0][0] === a[1], a[2]); continue;
           case 'if_any_move_disabled': case 'if_any_move_encored': branch(false, a[1]); continue;
           case 'if_user_has_no_attacking_moves': branch(!U.moves.some(x => MV[x].power > 0), a[0]); continue;
           case 'if_has_move': case 'if_doesnt_have_move': {
@@ -268,13 +266,14 @@ function makeSim(D, INF){
         user: {moves: m.moves, types: sp.t, ability, hpPct: ctx.userHpPct, status: ctx.userStatus, stages: {...us, acc: 0}, flags: ctx.userFlags,
                side: ctx.userSide, hold: it[0], last: ctx.prevMove, protect: ctx.protectCount, stock: ctx.stock, first: ctx.firstMove,
                party: ctx.userParty, gender: g, speed: uspe, qc},
-        tgt: {level: o.level, types: o.types, hp: ctx.hp, hpPct: Math.floor(100 * ctx.hp / o.max), status: ctx.tgtStatus, stages: ctx.tgtStages, flags: ctx.tgtFlags,
-              side: ctx.tgtSide, abil: o.abil, gender: o.gender, last: ctx.ourLast, history: ctx.ourHistory || ctx.ourHist || [], first: ctx.tgtFirst,
+        tgt: {level: o.level, types: o.types, hp: ctx.hp, hpPct: Math.floor(100 * ctx.hp / o.hp), status: ctx.tgtStatus, stages: ctx.tgtStages, flags: ctx.tgtFlags,
+              side: ctx.tgtSide, abil: o.guess.map(a => [a, 1 / o.guess.length]), gender: [[o.gender, 1]], last: ctx.ourLast, history: ctx.ourHistory || ctx.ourHist || [], first: ctx.tgtFirst,
               party: ctx.ourParty, partyStatus: ctx.ourPartyStatus, speed: tspe},
         dmg: {ability, stats, status: ctx.userStatus === 'burn' ? 'burn' : ctx.userStatus === 'none' ? 'none' : 'poison',
               pinch: ctx.userHpPct <= 33, flashFire: false, weather: ctx.weather === 'AI_WEATHER_RAIN' ? 'rain' : ctx.weather === 'AI_WEATHER_SUN' ? 'sun' : 'none',
               atkStage: us.atk || 0, spaStage: us.spa || 0},
-        dtgt: {types: o.types, def: o.def, spd: o.spd, ability: o.abil[0][0], defStage: ctx.tgtStages.def || 0, spdStage: ctx.tgtStages.spd || 0},
+        dtgt: {types: o.types, def: o.def, spd: o.spd, ability: o.ability, status: ctx.tgtStatus, defStage: ctx.tgtStages.def || 0, spdStage: ctx.tgtStages.spd || 0,
+               reflect: ctx.tgtSide.has('SIDE_STATUS_REFLECT'), lightScreen: ctx.tgtSide.has('SIDE_STATUS_LIGHTSCREEN')},
         usable: x => ctx.usable(x),
       };
       total += pa * pi * pq * chooseProb(st, M);

@@ -1,15 +1,13 @@
 // ===== COMの技選択から型を絞る推理エンジン (エメラルド / バトルフロンティアのAI: チェック1→3→2) =====
 // 「観測した技Mが、この型では最大点になりえない」ことを、取りうる全状態について確かめる。
 // 安全側: 分からない状態は全パターンを試し、1つでも M が選ばれうるなら除外しない。
-function makeInfer(D){
+// P: 自分のパーティ。場のキー(p0〜p2) → {name, types, hp, def, spd, spe, level, ability, guess, gender, moves}
+//    ability は実際の特性、guess は COM が推測しうる特性の一覧(特性が2つある種族は毎回どちらかを当てずっぽうで選ぶ)
+function makeInfer(D, P){
   const AI = D.ai, MV = D.moves;
   const PHYS = new Set(['NORMAL','FIGHTING','FLYING','POISON','GROUND','ROCK','BUG','GHOST','STEEL']);
   const RATIO = [[10,40],[10,35],[10,30],[10,25],[10,20],[10,15],[10,10],[15,10],[20,10],[25,10],[30,10],[35,10],[40,10]];
-  const ME = {
-    moltres: {name:'ファイヤー', types:['FIRE','FLYING'], hp:177, def:110, spd:128, ability:'PRESSURE'},
-    steelix: {name:'ハガネール', types:['STEEL','GROUND'], hp:182, def:246, spd:114, ability:'STURDY'},
-    shedinja:{name:'ヌケニン', types:['BUG','GHOST'], hp:1, def:59, spd:45, ability:'WONDER_GUARD'},
-  };
+  const ME = P;
   const SELF_STAT = new Set(['ATTACK_UP','ATTACK_UP_2','SPECIAL_ATTACK_UP','SPECIAL_ATTACK_UP_2','CALM_MIND','DRAGON_DANCE','BULK_UP',
     'CURSE','BELLY_DRUM','ATTACK_UP_HIT','ALL_STATS_UP_HIT','OVERHEAT','SUPERPOWER','PSYCH_UP','MEMENTO']);
   const PINCH = {OVERGROW:'GRASS', BLAZE:'FIRE', TORRENT:'WATER', SWARM:'BUG'};
@@ -51,10 +49,12 @@ function makeInfer(D){
     if (it[0] === 'DEEP_SEA_TOOTH' && sp.c === 'CLAMPERL') spa *= 2;
     if (it[0] === 'LIGHT_BALL' && sp.c === 'PIKACHU') spa *= 2;
     if (it[0] === 'THICK_CLUB' && (sp.c === 'CUBONE' || sp.c === 'MAROWAK')) atk *= 2;
+    if (tgt.ability === 'THICK_FAT' && (type === 'FIRE' || type === 'ICE')) spa = Math.floor(spa/2);
     if (st.ability === 'HUSTLE') atk = Math.floor(150*atk/100);
     if (st.ability === 'GUTS' && st.status !== 'none') atk = Math.floor(150*atk/100);
     if (PINCH[st.ability] === type && st.pinch) power = Math.floor(150*power/100);
     let def = tgt.def, spd = tgt.spd;
+    if (tgt.ability === 'MARVEL_SCALE' && tgt.status && tgt.status !== 'none') def = Math.floor(150*def/100);
     if (mv.effect === 'EXPLOSION') def = Math.floor(def/2);
     let d;
     if (PHYS.has(type)){
@@ -63,12 +63,14 @@ function makeInfer(D){
       d = Math.floor(d / Math.floor(def*rd[0]/rd[1]));
       d = Math.floor(d/50);
       if (st.status === 'burn' && st.ability !== 'GUTS') d = Math.floor(d/2);
+      if (tgt.reflect) d = Math.floor(d/2);
       if (d === 0) d = 1;
     } else {
       const r = RATIO[st.spaStage+6], rd = RATIO[tgt.spdStage+6];
       d = Math.floor(spa*r[0]/r[1]) * power * 22;
       d = Math.floor(d / Math.floor(spd*rd[0]/rd[1]));
       d = Math.floor(d/50);
+      if (tgt.lightScreen) d = Math.floor(d/2);
       if (st.weather === 'rain'){ if (type==='FIRE') d = Math.floor(d/2); if (type==='WATER') d = Math.floor(15*d/10); }
       if (st.weather === 'sun'){ if (type==='FIRE') d = Math.floor(15*d/10); if (type==='WATER') d = Math.floor(d/2); }
       if (st.flashFire && type === 'FIRE') d = Math.floor(15*d/10);
@@ -120,7 +122,7 @@ function makeInfer(D){
   }
   function makeFacts(m, ctx){
     const f = {T_DEF:[ctx.defStage||0, ctx.defStage||0], T_SPDEF:[ctx.spdStage||0, ctx.spdStage||0], T_EVASION:[ctx.evaStage||0, ctx.evaStage||0],
-               T_ATK:[-6,0], T_SPATK:[-6,0], T_SPEED:[-6,0], T_ACC:[-6,0]};
+               T_ATK:[-6, Math.max(0, ctx.atkStage||0)], T_SPATK:[-6, Math.max(0, ctx.spaStage||0)], T_SPEED:[-6, Math.max(0, ctx.speStage||0)], T_ACC:[-6,0]};
     const it = AI.items[m.item] || ['NONE',0];
     const ber = {ATTACK_UP:'ATK', DEFENSE_UP:'DEF', SPEED_UP:'SPEED', SP_ATTACK_UP:'SPATK', SP_DEFENSE_UP:'SPDEF'}[it[0]];
     const us = ctx.userStages, key = {ATK:'atk', DEF:'def', SPEED:'spe', SPATK:'spa', SPDEF:'spd', EVASION:'eva'};
@@ -133,21 +135,37 @@ function makeInfer(D){
   const c2r = (mid, facts, fk) => scr(LB.AI_CheckViability, 'EFFECT_' + MV[mid].effect, 'MOVE_' + MV[mid].c, facts, fk);
   const c1r = (mid, facts, fk) => scr(LB.AI_CheckBadMove_CheckEffect, 'EFFECT_' + MV[mid].effect, 'MOVE_' + MV[mid].c, facts, fk);
   const inCmp = mid => MV[mid].power > 1 && !AI.moves[mid].ign;
-  // チェック1(攻撃技の共通部分 + HighRiskForDamage)
+  // チェック1(攻撃技の共通部分 + ぼうおん + HighRiskForDamage)。相手の特性は COM の推測なので、推測しうる特性すべての結果を範囲にまとめる
+  const SOUND = new Set();
+  for (let i = LB.AI_CheckBadMove_CheckSoundproof; i < LB.AI_CheckBadMove_CheckEffect; i++) if (SL[i][0] === 'if_move') SOUND.add(SL[i][1]);
+  const ABSORB = {VOLT_ABSORB:'ELECTRIC', WATER_ABSORB:'WATER', FLASH_FIRE:'FIRE'};
   function c1(mid, tgt, facts, fk){
     const mv = MV[mid], ai = AI.moves[mid];
     const e = effClass(mv.typeEn, tgt.types);
     const generic = inCmp(mid) || mv.c === 'FISSURE' || mv.c === 'HORN_DRILL';
+    const guess = tgt.guess && tgt.guess.length ? tgt.guess : [tgt.ability];
+    const outs = [];
+    let cont = !generic;          // 共通部分で打ち切られずに先へ進む場合があるか
     if (generic){
       if (e === 0) return [-10,-10];
-      if (tgt.ability === 'WONDER_GUARD' && e !== 20) return [-10,-10];
+      for (const a of guess){
+        if (ABSORB[a] === mv.typeEn) outs.push([-12,-12]);
+        else if (a === 'WONDER_GUARD' && e !== 20) outs.push([-10,-10]);
+        else if (a === 'LEVITATE' && mv.typeEn === 'GROUND') outs.push([-10,-10]);
+        else cont = true;
+      }
     }
-    if (ai.c1 === 'hr'){
-      if (e === 0) return [-10,-10];
-      if (tgt.ability === 'WONDER_GUARD' && e !== 20) return [-10,-10];
-      return [0,0];
+    if (cont){
+      let cont2 = true;
+      if (SOUND.has('MOVE_' + mv.c)){ cont2 = false; for (const a of guess){ if (a === 'SOUNDPROOF') outs.push([-10,-10]); else cont2 = true; } }
+      if (cont2){
+        if (ai.c1 === 'hr'){
+          if (e === 0) outs.push([-10,-10]);
+          else for (const a of guess) outs.push(a === 'WONDER_GUARD' && e !== 20 ? [-10,-10] : [0,0]);
+        } else outs.push(c1r(mid, facts, fk));
+      }
     }
-    return c1r(mid, facts, fk);
+    return [Math.min(...outs.map(x => x[0])), Math.max(...outs.map(x => x[1]))];
   }
   function states(m, ctx){
     const sp = AI.species[m.sp];
@@ -172,14 +190,19 @@ function makeInfer(D){
     }
     return out;
   }
-  // m: 型, M: 観測した技, ctx: {field, defStage, spdStage, evaStage, userStages:{atk,def,spa,spd,spe,eva}, ivs, weathers, remaining:{mid:pp}, prevMove, firstMove}
+  // m: 型, M: 観測した技, ctx: {field, defStage, spdStage, evaStage, atkStage, spaStage, speStage, userStages:{atk,def,spa,spd,spe,eva}, ivs, weathers,
+  //   remaining:{mid:pp}, prevMove, firstMove, reflectOpts:[bool..], lightScreenOpts:[bool..]}
   function judge(m, M, ctx){
     if (!m.moves.includes(M) || MV[M].c === 'STRUGGLE') return null;
     const base = ME[ctx.field];
-    const tgt = {types: base.types, def: base.def, spd: base.spd, ability: base.ability, defStage: ctx.defStage||0, spdStage: ctx.spdStage||0, hp: base.hp};
+    const tgt = {types: base.types, def: base.def, spd: base.spd, ability: base.ability, guess: base.guess, defStage: ctx.defStage||0, spdStage: ctx.spdStage||0, hp: base.hp};
+    // ダメージ計算に効く自分側の状態(リフレクター・ひかりのかべ・ふしぎなうろこ)は、ありうるものを全部試す
+    const tgts = [];
+    for (const reflect of (ctx.reflectOpts || [false])) for (const lightScreen of (ctx.lightScreenOpts || [false]))
+      for (const status of (base.ability === 'MARVEL_SCALE' ? ['none','any'] : ['none'])) tgts.push(Object.assign({}, tgt, {reflect, lightScreen, status}));
     const it = AI.items[m.item] || ['NONE',0];
     if (it[0] === 'CHOICE_BAND' && !ctx.firstMove) return null;
-    const shed = ctx.field === 'shedinja';
+    const shed = base.hp === 1;   // ヌケニン(最大HP1)
     const [facts, fk] = makeFacts(m, ctx);
     const Ss = states(m, ctx);
     const cmp = m.moves.filter(inCmp);
@@ -191,8 +214,8 @@ function makeInfer(D){
       const c1X = c1(X, tgt, facts, fk)[0], c2X = c2r(X, facts, fk)[0];
       const c1M = c1(M, tgt, facts, fk)[1], c2M = c2r(M, facts, fk)[1];
       let ok = true, needHp = 0;
-      for (const s of Ss){
-        const dm = {}; for (const y of m.moves) if (MV[y].power > 1) dm[y] = damage(m, y, s, tgt);
+      for (const s of Ss){ if (!ok) break; for (const tg of tgts){
+        const dm = {}; for (const y of m.moves) if (MV[y].power > 1) dm[y] = damage(m, y, s, tg);
         const lo = y => Math.max(1, Math.floor(dm[y]*85/100)), hi = y => Math.max(1, dm[y]);
         // X の最低点
         let c3X;
@@ -214,7 +237,7 @@ function makeInfer(D){
         }
         const minX = 100 + c1X + c3X + c2X, maxM = 100 + c1M + c3M + c2M;
         if (!(minX > maxM)){ ok = false; break; }
-      }
+      } }
       if (!ok) continue;
       if (!shed && MV[M].power >= 2 && needHp > tgt.hp) continue;   // 満タンでも M で倒せるなら推理できない
       const cand = {X, needHp: (!shed && MV[M].power >= 2) ? needHp : 0, torment: X === ctx.prevMove};

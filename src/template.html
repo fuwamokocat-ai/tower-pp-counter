@@ -1,4 +1,5 @@
 <title>タワーPPカウンター</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -99,6 +100,30 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .ourmv{display:flex;gap:4px;flex-wrap:wrap}
 .ourmv button{border:1px solid var(--line);background:var(--panel);border-radius:5px;font-size:12px;padding:3px 8px}
 .ourmv button.last{border-color:var(--accent);font-weight:700}
+.ourside{display:flex;gap:4px;flex-wrap:wrap}
+.ourside:empty{display:none}
+.pedit{background:var(--panel);border:2px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:14px;display:grid;gap:12px}
+.pedit[hidden]{display:none}
+.pe-head h2{font-size:16px;margin:0}
+.pe-head .hint{display:block;margin:4px 0 0}
+.pe-cards{display:grid;gap:12px}
+@media (min-width:1100px){.pe-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pcard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);display:grid;gap:8px;min-width:0;align-content:start}
+.pe-row{display:flex;gap:8px;flex-wrap:wrap}
+.pe-f{display:grid;gap:2px;font-size:12px;color:var(--muted);flex:1 1 4.5em;min-width:0;align-content:start}
+.pe-f input,.pe-f select{font:inherit;font-size:16px;color:var(--ink);padding:6px 8px;border:2px solid var(--ink);border-radius:6px;background:var(--panel);width:100%;min-width:0}
+.pe-f select:disabled{opacity:.65;border-color:var(--line)}
+.pe-f small{font-size:11px;white-space:nowrap}
+.pe-f small.bad{color:var(--weak);font-weight:700}
+.pe-mv .pe-f{flex-basis:40%}
+.pe-sugg{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
+.pe-sugg:empty{display:none}
+.pe-sugg button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:4px 10px;font-size:14px;display:flex;gap:6px;align-items:center}
+.pe-sugg button.first{border-color:var(--accent)}
+.pe-sugg .hint{margin:0}
+.pe-err{color:var(--weak);font-size:13px;font-weight:700;display:grid;gap:2px}
+.pe-err:empty{display:none}
+.pe-act{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:700px){.deck{position:static}}
 .est-hp{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
 .est-hp input[type=range]{width:min(220px,60vw)}
@@ -106,6 +131,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .stage{display:flex;align-items:center;gap:4px;font-size:13px;flex-wrap:wrap}
 .stage .px{min-width:2.2em;text-align:center;font-size:16px}
 .stage-lbl{font-size:12px;color:var(--muted)}
+.stg{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .est{margin-top:10px;display:grid;gap:6px}
 .est-sum{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 10px;font-size:13px;text-align:left}
 .est-sum span{margin-left:auto;font-size:12px;color:var(--muted)}
@@ -132,7 +158,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 /* ---- 敵3匹 ---- */
 .board{display:grid;grid-template-columns:1fr;gap:16px}
 @media (min-width:1100px){.board{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.slot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0;box-shadow:var(--shadow);scroll-margin-top:170px}
+.slot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0;box-shadow:var(--shadow);scroll-margin-top:225px}
 .slot.down{opacity:.6}
 .slot-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
 .slot-no{font-family:var(--f-pixel);font-size:12px;color:var(--muted);letter-spacing:.08em}
@@ -238,13 +264,14 @@ kbd{font-family:var(--f-pixel);font-size:11px;border:1px solid var(--line);borde
   <div class="deck-row">
     <span class="field-label">場に出ている自分のポケモン</span>
     <div class="field" role="group" aria-label="場に出ている自分のポケモン" id="field"></div>
-    <div class="stage" id="stage"></div>
     <div class="act">
       <button class="btn" id="undo">取り消し</button>
       <button class="btn" data-brain="gold">リラ戦(金)</button>
+      <button class="btn" id="party-open">パーティ登録</button>
       <button class="btn primary" id="next">勝った・次のバトルへ</button>
     </div>
   </div>
+  <div class="deck-row"><div class="stage" id="stage"></div></div>
   <div class="deck-row self" id="self">
     <span class="field-label" id="self-name">自分</span>
     <label class="selfhp">HP <input id="our-hp" type="number" inputmode="numeric" min="0" step="1"> <span id="our-max"></span></label>
@@ -252,10 +279,11 @@ kbd{font-family:var(--f-pixel);font-size:11px;border:1px solid var(--line);borde
     <label class="selfst">状態 <select id="our-status"></select></label>
     <label class="selfst"><input type="checkbox" id="our-sub"> みがわり</label>
     <label class="selfst">天気 <select id="weather"><option value="AI_WEATHER_NONE">なし</option><option value="AI_WEATHER_RAIN">あめ</option><option value="AI_WEATHER_SUN">にほんばれ</option><option value="AI_WEATHER_SANDSTORM">すなあらし</option><option value="AI_WEATHER_HAIL">あられ</option></select></label>
-    <span class="field-label">自分の技</span><span class="ourmv" id="our-moves"></span>
+    <span class="field-label">自分の技</span><span class="ourmv" id="our-moves"></span><span class="ourside" id="our-side"></span>
   </div>
 </header>
 
+<section class="pedit" id="pedit" hidden aria-label="自分のパーティの登録"></section>
 <div id="notices"></div>
 <section class="tbar" id="tbar"></section>
 <main class="board" id="board"></main>
@@ -268,14 +296,15 @@ kbd{font-family:var(--f-pixel);font-size:11px;border:1px solid var(--line);borde
   <div class="box">
     <h2><span>見かた</span></h2>
     <ul class="legend">
-      <li><span class="tag weak">弱点</span><p>ヌケニンに当たる攻撃技(ほのお・ひこう・いわ・ゴースト・あく、みらいよち)。ここのPPを0にするのが目標です。</p></li>
-      <li><span class="tag ind">間接</span><p>ふしぎなまもりを通り抜けて削る補助技(どくどく・おにび・すなあらし・あられ・こんらん系・やどりぎ・まきびし・ほろびのうた等)。</p></li>
-      <li><span class="tag">必中・強制交代など</span><p>かげぶんしんを積んだファイヤーやバトンの流れを崩す技の目印です。</p></li>
+      <li><span class="tag weak" id="lg-weak-tag">弱点</span><p id="lg-weak"></p></li>
+      <li id="lg-ind"><span class="tag ind">間接</span><p>ふしぎなまもりを通り抜けて削る補助技(どくどく・おにび・すなあらし・あられ・こんらん系・やどりぎ・まきびし・ほろびのうた等)。</p></li>
+      <li><span class="tag">必中・強制交代など</span><p>能力を上げたポケモンやバトンタッチの流れを崩す技の目印です。</p></li>
       <li><span class="tag" style="border:1.5px solid var(--accent)">確率</span><p>型の%は「出現割合 × これまでに使われた技をその型のCOMが選ぶ確率」です。COMの技選択(チェック1→3→2、想定ダメージの乱数16通り、各判定の乱数)をそのまま計算しています。自分のHP・状態・みがわり・天気、相手のHP・状態・能力ランクを入れるほど正確になります。「自分の技」を押すと、COMが見ている直前の技も反映します。</p></li>
       <li><span class="tag" style="border:1.5px solid var(--accent)">推理</span><p>技をタップすると、COMの技選択ルーチン(チェック1〜3)を再現して「この型ならその技は選ばない」型を探し、条件つきで表示します。除外するかはご自身で判断してください。</p></li>
       <li><span class="tag">点線の枠</span><p>候補の型の一部だけが持っている技。使われた時点で、その技を持たない型は候補から外れます。</p></li>
     </ul>
-    <p class="src">技をタップすると、場がファイヤーなら自分以外を対象にする技は2減ります(第3世代のプレッシャー。まもるで防いでも減ります)。<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>で場の切り替え、<kbd>Z</kbd>で取り消し。全技のPPが尽きると相手はわるあがきを出し、これは第3世代ではヌケニンにも当たります。</p>
+    <p class="src" id="lg-src"></p>
+    <p class="src">自分のパーティは「パーティ登録」で変えられます(このブラウザに保存)。COMは自分のポケモンのタイプ・HP・防御・特防・素早さ・レベル・性別・直前の技を見て技を選ぶので、ゲームのステータス画面の数値をそのまま入れてください。</p>
     <p class="src">データはエメラルドの解析プロジェクト <a href="https://github.com/pret/pokeemerald" target="_blank" rel="noopener">pret/pokeemerald</a> から作成。対象は50連勝目以降(トレーナー番号200〜299)・レベル50で出る514型です。型の%は、そのトレーナーたちの抽選から見た目安で、既に出た相手の型と矛盾するトレーナーは除いて計算します。素早さは、トレーナーが決まれば個体値(200〜219番は21、220番以降は31)で正確に、決まらなければ両方の幅で表示します。トレーナー名は<a href="https://mi-note.hatenablog.com/entry/3rdpart5" target="_blank" rel="noopener">フロンティア攻略雑記</a>の一覧を、解析データの番号・肩書きと照合して使っています。</p>
   </div>
 </section>
@@ -283,14 +312,11 @@ kbd{font-family:var(--f-pixel);font-size:11px;border:1px solid var(--line);borde
 <script type="application/json" id="data">__DATA__</script>
 <script>
 // ===== COMの技選択の確率計算 (チェック1→3→2 をそのまま実行し、乱数の分岐は確率で足し合わせる) =====
-function makeSim(D, INF){
+// P: 自分のパーティ(engine.js の makeInfer と同じもの)
+function makeSim(D, INF, P){
   const AI = D.ai, MV = D.moves, SL = AI.script.lines, LB = AI.script.labels;
   const RAT = [[10,40],[10,35],[10,30],[10,25],[10,20],[10,15],[10,10],[15,10],[20,10],[25,10],[30,10],[35,10],[40,10]];
-  const OUR = {
-    moltres: {types:['FIRE','FLYING'], max:177, def:110, spd:128, spe:154, level:50, abil:[['PRESSURE',1]], gender:[['MON_GENDERLESS',1]]},
-    steelix: {types:['STEEL','GROUND'], max:182, def:246, spd:114, spe:48, level:50, abil:[['STURDY',.5],['ROCK_HEAD',.5]], gender:[['MON_MALE',1]]},
-    shedinja:{types:['BUG','GHOST'], max:1, def:59, spd:45, spe:36, level:45, abil:[['WONDER_GUARD',1]], gender:[['MON_GENDERLESS',1]]},
-  };
+  const OUR = P;
   const NUM = {FALSE:0, TRUE:1, ITEM_NONE:0, MOVE_NONE:0};
   const val = x => (x in NUM) ? NUM[x] : (/^-?\d+$/.test(x) ? +x : x);
   const EFF = {AI_EFFECTIVENESS_x0:0, AI_EFFECTIVENESS_x0_25:10, AI_EFFECTIVENESS_x0_5:20, AI_EFFECTIVENESS_x1:40, AI_EFFECTIVENESS_x2:80, AI_EFFECTIVENESS_x4:160};
@@ -385,7 +411,8 @@ function makeSim(D, INF){
           case 'if_target_taunted': pc++; continue;
           case 'if_not_double_battle': pc = LB[a[0]]; continue;
           case 'if_double_battle': pc++; continue;
-          case 'if_ability': branch(false, a[2]); continue;
+          // check_ability: 相手の特性は、特性が1つだけの種族のときしか「持っている」と答えない(2つある種族は「分からない」)
+          case 'if_ability': branch(a[0] === 'AI_TARGET' && T.abil.length === 1 && 'ABILITY_' + T.abil[0][0] === a[1], a[2]); continue;
           case 'if_any_move_disabled': case 'if_any_move_encored': branch(false, a[1]); continue;
           case 'if_user_has_no_attacking_moves': branch(!U.moves.some(x => MV[x].power > 0), a[0]); continue;
           case 'if_has_move': case 'if_doesnt_have_move': {
@@ -552,13 +579,14 @@ function makeSim(D, INF){
         user: {moves: m.moves, types: sp.t, ability, hpPct: ctx.userHpPct, status: ctx.userStatus, stages: {...us, acc: 0}, flags: ctx.userFlags,
                side: ctx.userSide, hold: it[0], last: ctx.prevMove, protect: ctx.protectCount, stock: ctx.stock, first: ctx.firstMove,
                party: ctx.userParty, gender: g, speed: uspe, qc},
-        tgt: {level: o.level, types: o.types, hp: ctx.hp, hpPct: Math.floor(100 * ctx.hp / o.max), status: ctx.tgtStatus, stages: ctx.tgtStages, flags: ctx.tgtFlags,
-              side: ctx.tgtSide, abil: o.abil, gender: o.gender, last: ctx.ourLast, history: ctx.ourHistory || ctx.ourHist || [], first: ctx.tgtFirst,
+        tgt: {level: o.level, types: o.types, hp: ctx.hp, hpPct: Math.floor(100 * ctx.hp / o.hp), status: ctx.tgtStatus, stages: ctx.tgtStages, flags: ctx.tgtFlags,
+              side: ctx.tgtSide, abil: o.guess.map(a => [a, 1 / o.guess.length]), gender: [[o.gender, 1]], last: ctx.ourLast, history: ctx.ourHistory || ctx.ourHist || [], first: ctx.tgtFirst,
               party: ctx.ourParty, partyStatus: ctx.ourPartyStatus, speed: tspe},
         dmg: {ability, stats, status: ctx.userStatus === 'burn' ? 'burn' : ctx.userStatus === 'none' ? 'none' : 'poison',
               pinch: ctx.userHpPct <= 33, flashFire: false, weather: ctx.weather === 'AI_WEATHER_RAIN' ? 'rain' : ctx.weather === 'AI_WEATHER_SUN' ? 'sun' : 'none',
               atkStage: us.atk || 0, spaStage: us.spa || 0},
-        dtgt: {types: o.types, def: o.def, spd: o.spd, ability: o.abil[0][0], defStage: ctx.tgtStages.def || 0, spdStage: ctx.tgtStages.spd || 0},
+        dtgt: {types: o.types, def: o.def, spd: o.spd, ability: o.ability, status: ctx.tgtStatus, defStage: ctx.tgtStages.def || 0, spdStage: ctx.tgtStages.spd || 0,
+               reflect: ctx.tgtSide.has('SIDE_STATUS_REFLECT'), lightScreen: ctx.tgtSide.has('SIDE_STATUS_LIGHTSCREEN')},
         usable: x => ctx.usable(x),
       };
       total += pa * pi * pq * chooseProb(st, M);
@@ -574,15 +602,13 @@ function makeSim(D, INF){
 // ===== COMの技選択から型を絞る推理エンジン (エメラルド / バトルフロンティアのAI: チェック1→3→2) =====
 // 「観測した技Mが、この型では最大点になりえない」ことを、取りうる全状態について確かめる。
 // 安全側: 分からない状態は全パターンを試し、1つでも M が選ばれうるなら除外しない。
-function makeInfer(D){
+// P: 自分のパーティ。場のキー(p0〜p2) → {name, types, hp, def, spd, spe, level, ability, guess, gender, moves}
+//    ability は実際の特性、guess は COM が推測しうる特性の一覧(特性が2つある種族は毎回どちらかを当てずっぽうで選ぶ)
+function makeInfer(D, P){
   const AI = D.ai, MV = D.moves;
   const PHYS = new Set(['NORMAL','FIGHTING','FLYING','POISON','GROUND','ROCK','BUG','GHOST','STEEL']);
   const RATIO = [[10,40],[10,35],[10,30],[10,25],[10,20],[10,15],[10,10],[15,10],[20,10],[25,10],[30,10],[35,10],[40,10]];
-  const ME = {
-    moltres: {name:'ファイヤー', types:['FIRE','FLYING'], hp:177, def:110, spd:128, ability:'PRESSURE'},
-    steelix: {name:'ハガネール', types:['STEEL','GROUND'], hp:182, def:246, spd:114, ability:'STURDY'},
-    shedinja:{name:'ヌケニン', types:['BUG','GHOST'], hp:1, def:59, spd:45, ability:'WONDER_GUARD'},
-  };
+  const ME = P;
   const SELF_STAT = new Set(['ATTACK_UP','ATTACK_UP_2','SPECIAL_ATTACK_UP','SPECIAL_ATTACK_UP_2','CALM_MIND','DRAGON_DANCE','BULK_UP',
     'CURSE','BELLY_DRUM','ATTACK_UP_HIT','ALL_STATS_UP_HIT','OVERHEAT','SUPERPOWER','PSYCH_UP','MEMENTO']);
   const PINCH = {OVERGROW:'GRASS', BLAZE:'FIRE', TORRENT:'WATER', SWARM:'BUG'};
@@ -624,10 +650,12 @@ function makeInfer(D){
     if (it[0] === 'DEEP_SEA_TOOTH' && sp.c === 'CLAMPERL') spa *= 2;
     if (it[0] === 'LIGHT_BALL' && sp.c === 'PIKACHU') spa *= 2;
     if (it[0] === 'THICK_CLUB' && (sp.c === 'CUBONE' || sp.c === 'MAROWAK')) atk *= 2;
+    if (tgt.ability === 'THICK_FAT' && (type === 'FIRE' || type === 'ICE')) spa = Math.floor(spa/2);
     if (st.ability === 'HUSTLE') atk = Math.floor(150*atk/100);
     if (st.ability === 'GUTS' && st.status !== 'none') atk = Math.floor(150*atk/100);
     if (PINCH[st.ability] === type && st.pinch) power = Math.floor(150*power/100);
     let def = tgt.def, spd = tgt.spd;
+    if (tgt.ability === 'MARVEL_SCALE' && tgt.status && tgt.status !== 'none') def = Math.floor(150*def/100);
     if (mv.effect === 'EXPLOSION') def = Math.floor(def/2);
     let d;
     if (PHYS.has(type)){
@@ -636,12 +664,14 @@ function makeInfer(D){
       d = Math.floor(d / Math.floor(def*rd[0]/rd[1]));
       d = Math.floor(d/50);
       if (st.status === 'burn' && st.ability !== 'GUTS') d = Math.floor(d/2);
+      if (tgt.reflect) d = Math.floor(d/2);
       if (d === 0) d = 1;
     } else {
       const r = RATIO[st.spaStage+6], rd = RATIO[tgt.spdStage+6];
       d = Math.floor(spa*r[0]/r[1]) * power * 22;
       d = Math.floor(d / Math.floor(spd*rd[0]/rd[1]));
       d = Math.floor(d/50);
+      if (tgt.lightScreen) d = Math.floor(d/2);
       if (st.weather === 'rain'){ if (type==='FIRE') d = Math.floor(d/2); if (type==='WATER') d = Math.floor(15*d/10); }
       if (st.weather === 'sun'){ if (type==='FIRE') d = Math.floor(15*d/10); if (type==='WATER') d = Math.floor(d/2); }
       if (st.flashFire && type === 'FIRE') d = Math.floor(15*d/10);
@@ -693,7 +723,7 @@ function makeInfer(D){
   }
   function makeFacts(m, ctx){
     const f = {T_DEF:[ctx.defStage||0, ctx.defStage||0], T_SPDEF:[ctx.spdStage||0, ctx.spdStage||0], T_EVASION:[ctx.evaStage||0, ctx.evaStage||0],
-               T_ATK:[-6,0], T_SPATK:[-6,0], T_SPEED:[-6,0], T_ACC:[-6,0]};
+               T_ATK:[-6, Math.max(0, ctx.atkStage||0)], T_SPATK:[-6, Math.max(0, ctx.spaStage||0)], T_SPEED:[-6, Math.max(0, ctx.speStage||0)], T_ACC:[-6,0]};
     const it = AI.items[m.item] || ['NONE',0];
     const ber = {ATTACK_UP:'ATK', DEFENSE_UP:'DEF', SPEED_UP:'SPEED', SP_ATTACK_UP:'SPATK', SP_DEFENSE_UP:'SPDEF'}[it[0]];
     const us = ctx.userStages, key = {ATK:'atk', DEF:'def', SPEED:'spe', SPATK:'spa', SPDEF:'spd', EVASION:'eva'};
@@ -706,21 +736,37 @@ function makeInfer(D){
   const c2r = (mid, facts, fk) => scr(LB.AI_CheckViability, 'EFFECT_' + MV[mid].effect, 'MOVE_' + MV[mid].c, facts, fk);
   const c1r = (mid, facts, fk) => scr(LB.AI_CheckBadMove_CheckEffect, 'EFFECT_' + MV[mid].effect, 'MOVE_' + MV[mid].c, facts, fk);
   const inCmp = mid => MV[mid].power > 1 && !AI.moves[mid].ign;
-  // チェック1(攻撃技の共通部分 + HighRiskForDamage)
+  // チェック1(攻撃技の共通部分 + ぼうおん + HighRiskForDamage)。相手の特性は COM の推測なので、推測しうる特性すべての結果を範囲にまとめる
+  const SOUND = new Set();
+  for (let i = LB.AI_CheckBadMove_CheckSoundproof; i < LB.AI_CheckBadMove_CheckEffect; i++) if (SL[i][0] === 'if_move') SOUND.add(SL[i][1]);
+  const ABSORB = {VOLT_ABSORB:'ELECTRIC', WATER_ABSORB:'WATER', FLASH_FIRE:'FIRE'};
   function c1(mid, tgt, facts, fk){
     const mv = MV[mid], ai = AI.moves[mid];
     const e = effClass(mv.typeEn, tgt.types);
     const generic = inCmp(mid) || mv.c === 'FISSURE' || mv.c === 'HORN_DRILL';
+    const guess = tgt.guess && tgt.guess.length ? tgt.guess : [tgt.ability];
+    const outs = [];
+    let cont = !generic;          // 共通部分で打ち切られずに先へ進む場合があるか
     if (generic){
       if (e === 0) return [-10,-10];
-      if (tgt.ability === 'WONDER_GUARD' && e !== 20) return [-10,-10];
+      for (const a of guess){
+        if (ABSORB[a] === mv.typeEn) outs.push([-12,-12]);
+        else if (a === 'WONDER_GUARD' && e !== 20) outs.push([-10,-10]);
+        else if (a === 'LEVITATE' && mv.typeEn === 'GROUND') outs.push([-10,-10]);
+        else cont = true;
+      }
     }
-    if (ai.c1 === 'hr'){
-      if (e === 0) return [-10,-10];
-      if (tgt.ability === 'WONDER_GUARD' && e !== 20) return [-10,-10];
-      return [0,0];
+    if (cont){
+      let cont2 = true;
+      if (SOUND.has('MOVE_' + mv.c)){ cont2 = false; for (const a of guess){ if (a === 'SOUNDPROOF') outs.push([-10,-10]); else cont2 = true; } }
+      if (cont2){
+        if (ai.c1 === 'hr'){
+          if (e === 0) outs.push([-10,-10]);
+          else for (const a of guess) outs.push(a === 'WONDER_GUARD' && e !== 20 ? [-10,-10] : [0,0]);
+        } else outs.push(c1r(mid, facts, fk));
+      }
     }
-    return c1r(mid, facts, fk);
+    return [Math.min(...outs.map(x => x[0])), Math.max(...outs.map(x => x[1]))];
   }
   function states(m, ctx){
     const sp = AI.species[m.sp];
@@ -745,14 +791,19 @@ function makeInfer(D){
     }
     return out;
   }
-  // m: 型, M: 観測した技, ctx: {field, defStage, spdStage, evaStage, userStages:{atk,def,spa,spd,spe,eva}, ivs, weathers, remaining:{mid:pp}, prevMove, firstMove}
+  // m: 型, M: 観測した技, ctx: {field, defStage, spdStage, evaStage, atkStage, spaStage, speStage, userStages:{atk,def,spa,spd,spe,eva}, ivs, weathers,
+  //   remaining:{mid:pp}, prevMove, firstMove, reflectOpts:[bool..], lightScreenOpts:[bool..]}
   function judge(m, M, ctx){
     if (!m.moves.includes(M) || MV[M].c === 'STRUGGLE') return null;
     const base = ME[ctx.field];
-    const tgt = {types: base.types, def: base.def, spd: base.spd, ability: base.ability, defStage: ctx.defStage||0, spdStage: ctx.spdStage||0, hp: base.hp};
+    const tgt = {types: base.types, def: base.def, spd: base.spd, ability: base.ability, guess: base.guess, defStage: ctx.defStage||0, spdStage: ctx.spdStage||0, hp: base.hp};
+    // ダメージ計算に効く自分側の状態(リフレクター・ひかりのかべ・ふしぎなうろこ)は、ありうるものを全部試す
+    const tgts = [];
+    for (const reflect of (ctx.reflectOpts || [false])) for (const lightScreen of (ctx.lightScreenOpts || [false]))
+      for (const status of (base.ability === 'MARVEL_SCALE' ? ['none','any'] : ['none'])) tgts.push(Object.assign({}, tgt, {reflect, lightScreen, status}));
     const it = AI.items[m.item] || ['NONE',0];
     if (it[0] === 'CHOICE_BAND' && !ctx.firstMove) return null;
-    const shed = ctx.field === 'shedinja';
+    const shed = base.hp === 1;   // ヌケニン(最大HP1)
     const [facts, fk] = makeFacts(m, ctx);
     const Ss = states(m, ctx);
     const cmp = m.moves.filter(inCmp);
@@ -764,8 +815,8 @@ function makeInfer(D){
       const c1X = c1(X, tgt, facts, fk)[0], c2X = c2r(X, facts, fk)[0];
       const c1M = c1(M, tgt, facts, fk)[1], c2M = c2r(M, facts, fk)[1];
       let ok = true, needHp = 0;
-      for (const s of Ss){
-        const dm = {}; for (const y of m.moves) if (MV[y].power > 1) dm[y] = damage(m, y, s, tgt);
+      for (const s of Ss){ if (!ok) break; for (const tg of tgts){
+        const dm = {}; for (const y of m.moves) if (MV[y].power > 1) dm[y] = damage(m, y, s, tg);
         const lo = y => Math.max(1, Math.floor(dm[y]*85/100)), hi = y => Math.max(1, dm[y]);
         // X の最低点
         let c3X;
@@ -787,7 +838,7 @@ function makeInfer(D){
         }
         const minX = 100 + c1X + c3X + c2X, maxM = 100 + c1M + c3M + c2M;
         if (!(minX > maxM)){ ok = false; break; }
-      }
+      } }
       if (!ok) continue;
       if (!shed && MV[M].power >= 2 && needHp > tgt.hp) continue;   // 満タンでも M で倒せるなら推理できない
       const cand = {X, needHp: (!shed && MV[M].power >= 2) ? needHp : 0, torment: X === ctx.prevMove};
@@ -807,8 +858,9 @@ const kana = s => (s||'').normalize('NFKC').replace(/[\u3041-\u3096]/g, c => Str
 const D = JSON.parse(document.getElementById('data').textContent);
 const MV = D.moves;
 const MON = new Map(D.mons.map(m => [m.id, m]));
-const INF = makeInfer(D);
-const SIM = makeSim(D, INF);
+const P = {};   // 自分のパーティ(場のキー → 計算用の値)。INF・SIM と共有し、登録を変えたら中身を書き換える
+const INF = makeInfer(D, P);
+const SIM = makeSim(D, INF, P);
 const TR = new Map(D.trainers.map(t => [t.id, t]));
 D.trainers.forEach(t => { t.key = kana(t.ja); t.ckey = kana(t.jcls); t.sps = new Set(t.mons.map(x => MON.get(x).sp)); });
 let IVR = [21, 31], CAND_TR = D.trainers;
@@ -819,12 +871,44 @@ const brainAt = n => n === 35 ? 'silver' : (n >= 70 && (n - 70) % 35 === 0 ? 'go
 const nextBrain = n => { for (let k = n; k < n + 36; k++) if (brainAt(k)) return k; return null; };
 D.trainers.forEach(t => { t.set = new Set(t.mons); t.n = t.mons.length; });
 
-const ME = {
-  moltres: {name:'ファイヤー', sub:'プレッシャー 2減る', spe:154},
-  steelix: {name:'ハガネール', sub:'1減る'},
-  shedinja:{name:'ヌケニン', sub:'1減る'},
-};
-const FIELD_KEYS = ['moltres','steelix','shedinja'];
+// ---------- 自分のパーティ ----------
+const FIELD_KEYS = ['p0','p1','p2'];
+const OLD_KEYS = ['moltres','steelix','shedinja'];   // 旧版(パーティ固定)の場のキー
+const PARTY_KEY = 'tower-pp-counter-party-v1';
+const SPD = D.ai.species, ABJ = D.ai.abilJa, DEX = D.ai.dex;
+const TYJA = {}; for (const k in MV) TYJA[MV[k].typeEn] = MV[k].type;
+const ALL_TYPES = ['NORMAL','FIRE','WATER','ELECTRIC','GRASS','ICE','FIGHTING','POISON','GROUND','FLYING','PSYCHIC','BUG','ROCK','GHOST','DRAGON','DARK','STEEL'];
+const TRAP = new Set(['SHADOW_TAG','MAGNET_PULL','ARENA_TRAP']);   // COMが必ず見抜く特性(それ以外で特性が2つある種族は、COMは毎回当てずっぽう)
+const GENDER_LABEL = {MON_MALE:'♂', MON_FEMALE:'♀', MON_GENDERLESS:'性別なし'};
+const genders = sp => { const g = SPD[sp].g; return g < 0 ? ['MON_GENDERLESS'] : g === 0 ? ['MON_MALE'] : g === 1 ? ['MON_FEMALE'] : ['MON_MALE','MON_FEMALE']; };
+// 数値はゲームのステータス画面の実数値。攻撃・特攻は COM の技選択に関係しないので持たない
+const DEFAULT_PARTY = [
+  {sp:'ファイヤー', level:50, hp:177, def:110, spd:128, spe:154, ability:'PRESSURE', gender:'MON_GENDERLESS', moves:D.ai.our.moltres},
+  {sp:'ハガネール', level:50, hp:182, def:246, spd:114, spe:48, ability:'STURDY', gender:'MON_MALE', moves:D.ai.our.steelix},
+  {sp:'ヌケニン', level:45, hp:1, def:59, spd:45, spe:36, ability:'WONDER_GUARD', gender:'MON_GENDERLESS', moves:D.ai.our.shedinja},
+];
+let PARTY, WG = null;   // WG: ふしぎなまもりのポケモンの場のキー(いなければ null)
+function partyOk(list){
+  if (!Array.isArray(list) || list.length !== 3) return false;
+  for (const e of list){
+    if (!e || !SPD[e.sp] || !SPD[e.sp].a.includes(e.ability) || !genders(e.sp).includes(e.gender)) return false;
+    for (const k of ['level','hp','def','spd','spe']) if (!(Number.isInteger(e[k]) && e[k] >= 1)) return false;
+    if (!Array.isArray(e.moves) || !e.moves.length || e.moves.length > 4 || e.moves.some(x => !MV[x])) return false;
+  }
+  return true;
+}
+function applyParty(list){
+  PARTY = list;
+  FIELD_KEYS.forEach((k, i) => { const e = list[i], sp = SPD[e.sp];
+    P[k] = {name:e.sp, types:sp.t, hp:e.hp, def:e.def, spd:e.spd, spe:e.spe, level:e.level, ability:e.ability,
+            guess: TRAP.has(e.ability) ? [e.ability] : sp.a, gender:e.gender, moves:e.moves, pressure:e.ability === 'PRESSURE'}; });
+  WG = FIELD_KEYS.find(k => P[k].ability === 'WONDER_GUARD') || null;
+}
+function loadParty(){
+  try { const raw = localStorage.getItem(PARTY_KEY); if (raw){ const v = JSON.parse(raw); if (partyOk(v)) return v; } } catch(e){}
+  return null;
+}
+applyParty(loadParty() || DEFAULT_PARTY);
 
 const TYPE_COLOR = {
   'ノーマル':['#a8a77a','#1b1b10'],'ほのお':['#e2622c','#fff'],'みず':['#4a7fe0','#fff'],'でんき':['#e8c320','#2a2200'],
@@ -833,7 +917,6 @@ const TYPE_COLOR = {
   'いわ':['#a48c38','#fff'],'ゴースト':['#5a4a8a','#fff'],'ドラゴン':['#5838df','#fff'],'あく':['#5a483c','#fff'],
   'はがね':['#a3a3bd','#1a1a28'],
 };
-const WEAK_TYPES = new Set(['FIRE','FLYING','ROCK','GHOST','DARK']);
 const IND_EFFECTS = new Set(['TOXIC','POISON','WILL_O_WISP','LEECH_SEED','SANDSTORM','HAIL','SPIKES','CONFUSE','SWAGGER','FLATTER','TEETER_DANCE','PERISH_SONG','NIGHTMARE']);
 const WARN = {ROAR:'強制交代',ALWAYS_HIT:'必中',VITAL_THROW:'必中',PSYCH_UP:'能力コピー',OHKO:'一撃必殺',HAZE:'能力リセット',
   ENCORE:'アンコール',DISABLE:'かなしばり',TORMENT:'いちゃもん',SLEEP:'ねむり',YAWN:'あくび',PARALYZE:'まひ',TAUNT:'ちょうはつ',
@@ -844,14 +927,18 @@ const EV_ORDER = ['HP','ATTACK','DEFENSE','SP_ATTACK','SP_DEFENSE','SPEED'];
 const SPE_UP = new Set(['おくびょう','せっかち','ようき','むじゃき']);
 const SPE_DN = new Set(['ゆうかん','のんき','れいせい','なまいき']);
 
+const effX10 = (type, types) => { let e = 10; for (const m of INF.effMuls(type, types)) e = e * m / 10; return e; };   // 相性の倍率×10
+// 技の色分け。ふしぎなまもりのポケモンがいれば「そのポケモンに当たる技」、いなければ「場の自分のポケモンに効果抜群の技」
 function moveClass(mid, mon){
   const m = MV[mid]; if (!m) return '';
+  if (!WG) return m.power > 0 && effX10(m.typeEn, P[S.field].types) > 10 ? 'weak' : '';
   if (m.effect === 'FUTURE_SIGHT' || m.effect === 'HIDDEN_POWER') return 'weak';
-  if (m.power > 0 && WEAK_TYPES.has(m.typeEn)) return 'weak';
+  if (m.power > 0 && effX10(m.typeEn, P[WG].types) > 10) return 'weak';
   if (IND_EFFECTS.has(m.effect)) return 'ind';
   if (m.effect === 'CURSE' && mon && mon.types.includes('ゴースト')) return 'ind';
   return '';
 }
+const weakWord = () => WG ? '弱点' : '抜群';
 function speedOf(mon, iv){
   if (mon.iv != null) iv = mon.iv;
   const ev = mon.evv ? mon.evv[5] : (mon.evs.includes('SPEED') ? Math.floor(510 / mon.evs.length) : 0);
@@ -871,7 +958,7 @@ const SPECIES = [];
     if (!by.has(m.sp)) by.set(m.sp, {sp:m.sp, key:kana(m.sp), types:m.types, sets:[], rate:0});
     const s = by.get(m.sp); s.sets.push(m); s.rate += m.rate;
   }
-  for (const s of by.values()){ s.danger = s.sets.filter(m => m.moves.some(x => moveClass(x,m)==='weak')).length; SPECIES.push(s); }
+  for (const s of by.values()) SPECIES.push(s);
   SPECIES.sort((a,b) => b.rate - a.rate);
 }
 const SP = new Map(SPECIES.map(s => [s.sp, s]));
@@ -880,10 +967,18 @@ const SP = new Map(SPECIES.map(s => [s.sp, s]));
 const KEY = 'tower-pp-counter-v1';
 const ZST = () => ({atk:0, def:0, spa:0, spd:0, spe:0, eva:0});
 const blankSlot = () => ({sp:null, used:{}, excl:[], down:false, brain:null, st:ZST(), hpPct:100, status:'none', lik:{}, protect:0, stock:0});
-const blank = () => ({field:'moltres', slots:[blankSlot(),blankSlot(),blankSlot()], streak:448, log:[], hist:[], sample:false, trainer:null, stages:{moltres:{def:0,spd:0,eva:0},steelix:{def:0,spd:0,eva:0},shedinja:{def:0,spd:0,eva:0}}, ...ourDefaults()});
+const perMon = f => Object.fromEntries(FIELD_KEYS.map(k => [k, f(k)]));
+const blank = () => ({field:FIELD_KEYS[0], slots:[blankSlot(),blankSlot(),blankSlot()], streak:448, log:[], hist:[], sample:false, trainer:null, stages:perMon(ZST), ...ourDefaults()});
 let S;
 function load(){
-  try { const raw = localStorage.getItem(KEY); if (raw){ const v = JSON.parse(raw); if (v && Array.isArray(v.slots)) return v; } } catch(e){}
+  try {
+    let raw = localStorage.getItem(KEY);
+    if (raw){
+      // 旧版の場のキー(moltres など)を p0〜p2 に読み替える。取り消し用の履歴は文字列の中に入っているので \" の形も直す
+      raw = raw.replace(/(\\*")(moltres|steelix|shedinja)(\\*")/g, (m, a, k, b) => a + FIELD_KEYS[OLD_KEYS.indexOf(k)] + b);
+      const v = JSON.parse(raw); if (v && Array.isArray(v.slots)) return v;
+    }
+  } catch(e){}
   return null;
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
@@ -900,19 +995,28 @@ function moveIdByName(name){ for (const k in MV) if (MV[k].ja === name) return +
 function makeSample(){
   const s = blank(); s.sample = true;
   const sb = moveIdByName('シャドーボール'), dk = moveIdByName('ドラゴンクロー');
-  s.slots[0] = {sp:'ゲンガー', used:{[sb]:6}, excl:[], down:false};
-  s.slots[1] = {sp:'ラティオス', used:{[dk]:2}, excl:[], down:false};
-  s.log = [{t:1,txt:'ゲンガー シャドーボール −2(ファイヤー)'},{t:2,txt:'ゲンガー シャドーボール −2(ファイヤー)'},{t:3,txt:'ゲンガー シャドーボール −2(ファイヤー)'},{t:4,txt:'ラティオス ドラゴンクロー −2(ファイヤー)'}];
+  const c = P.p0.pressure ? 2 : 1, me = P.p0.name;
+  s.slots[0] = {sp:'ゲンガー', used:{[sb]:3*c}, excl:[], down:false};
+  s.slots[1] = {sp:'ラティオス', used:{[dk]:c}, excl:[], down:false};
+  s.log = [{t:1,txt:`ゲンガー シャドーボール −${c}(${me})`},{t:2,txt:`ゲンガー シャドーボール −${c}(${me})`},{t:3,txt:`ゲンガー シャドーボール −${c}(${me})`},{t:4,txt:`ラティオス ドラゴンクロー −${c}(${me})`}];
   return s;
 }
 S = load() || makeSample();
 S.hist = S.hist || [];
 function ourDefaults(){
-  return {hp:{moltres:177, steelix:182, shedinja:1}, ostatus:{moltres:'none', steelix:'none', shedinja:'none'},
-    sub:{moltres:false, steelix:false, shedinja:false}, ourLast:{moltres:0, steelix:0, shedinja:0}, ourHist:{moltres:[], steelix:[], shedinja:[]},
-    weather:'AI_WEATHER_NONE', eside:{}, spikes:false, future:0, turn:0, tgtFirst:true, baton:null};
+  return {hp:perMon(k => P[k].hp), ostatus:perMon(() => 'none'), sub:perMon(() => false), ourLast:perMon(() => 0), ourHist:perMon(() => []),
+    weather:'AI_WEATHER_NONE', eside:{}, oside:{}, spikes:false, future:0, turn:0, tgtFirst:true, baton:null};
 }
-function ensureS(){ const d = ourDefaults(); for (const k in d) if (S[k] === undefined) S[k] = d[k]; S.slots.forEach(sl => { const b = blankSlot(); for (const k in b) if (sl[k] === undefined) sl[k] = b[k]; }); }
+function ensureS(){ const d = ourDefaults(); for (const k in d) if (S[k] === undefined) S[k] = d[k];
+  if (!FIELD_KEYS.includes(S.field)) S.field = FIELD_KEYS[0];
+  if (!FIELD_KEYS.includes(S.switchFrom)) S.switchFrom = null;
+  S.stages = S.stages || {};
+  for (const k of FIELD_KEYS){
+    S.stages[k] = Object.assign(ZST(), S.stages[k]);
+    for (const g of ['hp','ostatus','sub','ourLast','ourHist']) if (S[g][k] === undefined) S[g][k] = d[g][k];
+    S.hp[k] = Math.min(S.hp[k], P[k].hp);
+  }
+  S.slots.forEach(sl => { const b = blankSlot(); for (const k in b) if (sl[k] === undefined) sl[k] = b[k]; }); }
 ensureS();
 
 // ---------- 候補の計算 ----------
@@ -970,8 +1074,6 @@ function compute(){
 
 // ---------- 操作 ----------
 // カウンター・ミラーコートは、失敗するとプレッシャーの影響を受けない(Cmd_counterdamagecalculator)。
-// このパーティで成功しうるのは、ファイヤーのかえんほうしゃを受けた後のミラーコートだけ。
-const FLAMETHROWER_ID = +Object.keys(MV).find(k => MV[k].c === 'FLAMETHROWER');
 // 失敗することがほとんどなので、どちらも既定は−1。成功したときだけ「成功」ボタンで1追加する。
 const isCounter = mid => ['COUNTER','MIRROR_COAT'].includes(MV[mid].effect);
 function counterOk(mid){ return !isCounter(mid); }
@@ -979,12 +1081,12 @@ function counterSuccess(i, mid){
   const slot = S.slots[i], m = MV[mid], used = slot.used[mid] || 0;
   if (used >= m.pp) return;
   snapshot(); slot.used[mid] = used + 1;
-  S.log.push({t:S.log.length+1, txt:`${slot.sp} ${m.ja} 成功(ファイヤーに当たったので−1追加) 残り${m.pp - slot.used[mid]}`});
+  S.log.push({t:S.log.length+1, txt:`${slot.sp} ${m.ja} 成功(${P[S.field].name}に当たったので−1追加) 残り${m.pp - slot.used[mid]}`});
   render();
 }
 function cost(mid){
   const m = MV[mid];
-  return (S.field === 'moltres' && m.target !== 'USER' && counterOk(mid)) ? 2 : 1;
+  return (P[S.field].pressure && m.target !== 'USER' && counterOk(mid)) ? 2 : 1;
 }
 function useMove(i, mid){
   const slot = S.slots[i], m = MV[mid];
@@ -994,14 +1096,17 @@ function useMove(i, mid){
   S.switchFrom = null;
   S.active = i; S.turn = (S.turn || 0) + 1;
   for (const k in S.eside) if (S.eside[k] > 0) S.eside[k]--;
+  if (S.oside) for (const k in S.oside) if (S.oside[k] > 0) S.oside[k]--;
   if (S.future > 0) S.future--;
   { const e = MV[mid].effect;
     const W = {RAIN_DANCE:'AI_WEATHER_RAIN', SUNNY_DAY:'AI_WEATHER_SUN', SANDSTORM:'AI_WEATHER_SANDSTORM', HAIL:'AI_WEATHER_HAIL'};
     if (W[e]) S.weather = W[e];
     const SIDE = {REFLECT:'REFLECT', LIGHT_SCREEN:'LIGHTSCREEN', SAFEGUARD:'SAFEGUARD', MIST:'MIST'};
-    if (SIDE[e]) S.eside[SIDE[e]] = 5;
+    // 壁は5ターン続くが、使ったターンの終わりに1減るので、COMが技を選ぶときに見えるのは次の4回(使えるのは切れているときだけ)
+    if (SIDE[e] && !(S.eside[SIDE[e]] > 0)) S.eside[SIDE[e]] = 4;
     if (e === 'SPIKES') S.spikes = true;
-    if (e === 'FUTURE_SIGHT') S.future = 3;
+    // みらいよちは2ターン後の終わりに当たるので、COMに見えるのは次の2回
+    if (e === 'FUTURE_SIGHT' && !(S.future > 0)) S.future = 2;
     slot.protect = (e === 'PROTECT' || e === 'ENDURE') ? (slot.protect || 0) + 1 : 0;
     if (e === 'STOCKPILE') slot.stock = Math.min(3, (slot.stock || 0) + 1);
     if (e === 'SPIT_UP' || e === 'SWALLOW') slot.stock = 0;
@@ -1011,13 +1116,13 @@ function useMove(i, mid){
   const c = cost(mid);
   slot.used[mid] = Math.min(m.pp, before + c);
   slot.last = mid;
-  S.log.push({t:S.log.length+1, txt:`${slot.sp} ${m.ja} −${slot.used[mid]-before}(${ME[S.field].name}) 残り${m.pp-slot.used[mid]}`});
+  S.log.push({t:S.log.length+1, txt:`${slot.sp} ${m.ja} −${slot.used[mid]-before}(${P[S.field].name}) 残り${m.pp-slot.used[mid]}`});
   S.sample = false;
   render();
 }
 // 相手が自分に使う、必ず効く能力変化の技(タップで自動反映)
-const SELF_BOOST = {ATTACK_UP_2:{atk:2}, BULK_UP:{atk:1,def:1}, CALM_MIND:{spa:1,spd:1}, COSMIC_POWER:{def:1,spd:1}, DEFENSE_CURL:{def:1},
-  DEFENSE_UP_2:{def:2}, DRAGON_DANCE:{atk:1,spe:1}, EVASION_UP:{eva:1}, MINIMIZE:{eva:1}, SPECIAL_ATTACK_UP:{spa:1},
+const SELF_BOOST = {ATTACK_UP:{atk:1}, ATTACK_UP_2:{atk:2}, BULK_UP:{atk:1,def:1}, CALM_MIND:{spa:1,spd:1}, COSMIC_POWER:{def:1,spd:1}, DEFENSE_CURL:{def:1},
+  DEFENSE_UP:{def:1}, DEFENSE_UP_2:{def:2}, DRAGON_DANCE:{atk:1,spe:1}, EVASION_UP:{eva:1}, MINIMIZE:{eva:1}, SPECIAL_ATTACK_UP:{spa:1}, SPECIAL_ATTACK_UP_2:{spa:2},
   SPECIAL_DEFENSE_UP_2:{spd:2}, SPEED_UP_2:{spe:2}, OVERHEAT:{spa:-2}, SUPERPOWER:{atk:-1,def:-1}, CURSE:{atk:1,def:1,spe:-1}};
 const RANDOM_BOOST = new Set(['ATTACK_UP_HIT','DEFENSE_UP_HIT','ALL_STATS_UP_HIT']);
 const ST_KEYS = [['atk','攻撃'],['def','防御'],['spa','特攻'],['spd','特防'],['spe','素早さ'],['eva','回避']];
@@ -1034,31 +1139,44 @@ function applySelfBoost(slot, mid){
 const stTxt = st => ST_KEYS.filter(([k]) => st && st[k]).map(([k,l]) => `${l}${st[k] > 0 ? '+' : '−'}${Math.abs(st[k])}`).join('・');
 const STATUS_OPTS = [['none','なし'],['poison','どく'],['toxic','もうどく'],['burn','やけど'],['para','まひ'],['sleep','ねむり'],['freeze','こおり']];
 const stOpts = v => STATUS_OPTS.map(([k,l]) => `<option value="${k}"${v===k?' selected':''}>${l}</option>`).join('');
-const OUR_MAX = {moltres:177, steelix:182, shedinja:1};
+// 自分の技を押したときに自動で反映するもの
+const OUR_BOOST = SELF_BOOST;
+const OUR_SIDE = {REFLECT:'REFLECT', LIGHT_SCREEN:'LIGHTSCREEN', SAFEGUARD:'SAFEGUARD', MIST:'MIST'};
+const SIDE_LABEL = {REFLECT:'リフレクター', LIGHTSCREEN:'ひかりのかべ', SAFEGUARD:'しんぴのまもり', MIST:'しろいきり'};
+const WEATHER_MOVE = {RAIN_DANCE:'AI_WEATHER_RAIN', SUNNY_DAY:'AI_WEATHER_SUN', SANDSTORM:'AI_WEATHER_SANDSTORM', HAIL:'AI_WEATHER_HAIL'};
+const partyHas = eff => FIELD_KEYS.some(k => P[k].moves.some(x => MV[x].effect === eff));
 function activeSlot(){ const a = S.active; if (a != null && S.slots[a] && S.slots[a].sp && !S.slots[a].down) return a; return S.slots.findIndex(x => x.sp && !x.down); }
 function renderSelf(){
   const f = S.field, hpEl = document.getElementById('our-hp');
-  document.getElementById('self-name').textContent = ME[f].name;
+  document.getElementById('self-name').textContent = P[f].name;
   if (document.activeElement !== hpEl) hpEl.value = S.hp[f];
-  hpEl.max = OUR_MAX[f]; document.getElementById('our-max').textContent = '/' + OUR_MAX[f];
+  hpEl.max = P[f].hp; document.getElementById('our-max').textContent = '/' + P[f].hp;
   const ss = document.getElementById('our-status'); ss.innerHTML = stOpts(S.ostatus[f]);
   document.getElementById('our-sub').checked = !!S.sub[f];
   document.getElementById('weather').value = S.weather;
-  document.getElementById('our-moves').innerHTML = D.ai.our[f].map(x => `<button type="button" class="${S.ourLast[f]===x?'last':''}" data-our="${x}">${esc(MV[x].ja)}</button>`).join('');
+  document.getElementById('our-moves').innerHTML = P[f].moves.map(x => `<button type="button" class="${S.ourLast[f]===x?'last':''}" data-our="${x}">${esc(MV[x].ja)}</button>`).join('');
+  const os = S.oside || {};
+  document.getElementById('our-side').innerHTML = Object.keys(os).filter(k => os[k] > 0).map(k => `<button type="button" class="mini" data-oside="${k}" title="切れたらタップで消す">${SIDE_LABEL[k]} あと${os[k]} ×</button>`).join('');
 }
 function useOur(mid){
   snapshot();
-  const f = S.field, e = MV[mid].effect, st = getStages(), a = activeSlot();
+  const f = S.field, e = MV[mid].effect, st = getStages(), a = activeSlot(), max = P[f].hp;
   S.ourLast[f] = mid; if (!S.ourHist[f].includes(mid)) S.ourHist[f] = [...S.ourHist[f], mid].slice(-4);
-  if (e === 'SUBSTITUTE' && !S.sub[f] && S.hp[f] > Math.floor(OUR_MAX[f]/4)){ S.hp[f] -= Math.floor(OUR_MAX[f]/4); S.sub[f] = true; }
-  if (e === 'REST'){ S.hp[f] = OUR_MAX[f]; S.ostatus[f] = 'sleep'; }
-  if (e === 'EVASION_UP') st.eva = clampSt(st.eva + 1);
+  if (e === 'SUBSTITUTE' && !S.sub[f] && S.hp[f] > Math.floor(max/4)){ S.hp[f] -= Math.floor(max/4); S.sub[f] = true; }
+  if (e === 'REST'){ S.hp[f] = max; S.ostatus[f] = 'sleep'; }
+  if (e === 'BELLY_DRUM'){ if (S.hp[f] > Math.floor(max/2)){ S.hp[f] -= Math.floor(max/2); st.atk = 6; } }
+  else if (OUR_BOOST[e] && !(e === 'CURSE' && P[f].types.includes('GHOST'))){ const b = OUR_BOOST[e]; for (const k in b) st[k] = clampSt(st[k] + b[k]); }
   if (e === 'TORMENT' && a >= 0) S.slots[a].tormented = true;
-  if (e === 'BATON_PASS') S.baton = {def:st.def, spd:st.spd, eva:st.eva, sub:!!S.sub[f]};
-  S.log.push({t:S.log.length+1, txt:`自分: ${ME[f].name} ${MV[mid].ja}`});
+  if (WEATHER_MOVE[e]) S.weather = WEATHER_MOVE[e];
+  // COMは次のターンの初めに技を選ぶので、壁は残り4回ぶん・みらいよちは2回ぶん見える
+  if (OUR_SIDE[e]){ S.oside = S.oside || {}; if (!(S.oside[OUR_SIDE[e]] > 0)) S.oside[OUR_SIDE[e]] = 4; }
+  if (e === 'FUTURE_SIGHT' && !(S.eside.FUTUREATTACK > 0)) S.eside.FUTUREATTACK = 2;
+  if (e === 'BATON_PASS') S.baton = {atk:st.atk, def:st.def, spa:st.spa, spd:st.spd, spe:st.spe, eva:st.eva, sub:!!S.sub[f]};
+  S.log.push({t:S.log.length+1, txt:`自分: ${P[f].name} ${MV[mid].ja}`});
   render();
 }
-function getStages(){ S.stages = S.stages || blank().stages; const st = S.stages[S.field]; if (st.eva == null) st.eva = 0; return st; }
+function stagesOf(f){ S.stages = S.stages || blank().stages; const st = S.stages[f] = S.stages[f] || ZST(); for (const k in ZST()) if (st[k] == null) st[k] = 0; return st; }
+function getStages(){ return stagesOf(S.field); }
 function inferOnUse(i, mid){
   const slot = S.slots[i];
   if (slot.brain) return;
@@ -1073,17 +1191,18 @@ function inferOnUse(i, mid){
   const remaining = {}; for (const k in MV) remaining[k] = Math.max(0, MV[k].pp - (slot.used[k] || 0));
   // 交代直後は、交代前・交代後のどちらを見て選んだ場合でも成り立つものだけ出す
   const targets = S.switchFrom != null && S.switchFrom !== S.field ? [S.switchFrom, S.field] : [S.field];
-  S.stages = S.stages || blank().stages;
+  const reflectOpts = partyHas('REFLECT') ? [false, true] : [false], lightScreenOpts = partyHas('LIGHT_SCREEN') ? [false, true] : [false];
   const hints = [];
   for (const m of sets){
     const parts = [];
     for (const f of targets){
-      const st = S.stages[f]; if (st.eva == null) st.eva = 0;
-      const ctx = {field:f, defStage:st.def, spdStage:st.spd, evaStage:st.eva, ivs:[IVR[0], IVR[1]], weathers,
+      const st = stagesOf(f);
+      const ctx = {field:f, defStage:st.def, spdStage:st.spd, evaStage:st.eva, atkStage:st.atk, spaStage:st.spa, speStage:st.spe, reflectOpts, lightScreenOpts, ivs:[IVR[0], IVR[1]], weathers,
         userStages: {...slotSt(slot)}, remaining, prevMove: slot.last ?? null, firstMove: mine.length === 0, tormented: !!slot.tormented};
       const r = INF.judge(m, mid, ctx);
       if (!r) break;
-      parts.push({field:f, X:r.X, hp:r.needHp, torment:r.torment, def:st.def, spd:st.spd, eva:st.eva});
+      const up = {}; for (const k of ['atk','spa','spe']) if (st[k] > 0) up[k] = st[k];   // 上がっているときだけ条件に入る
+      parts.push({field:f, X:r.X, hp:r.needHp, torment:r.torment, def:st.def, spd:st.spd, eva:st.eva, ...up});
     }
     if (parts.length === targets.length) hints.push({set:m.id, M:mid, parts, sw: targets.length > 1, ust:{...slotSt(slot)}, t:S.log.length+1});
   }
@@ -1096,9 +1215,10 @@ function likOnUse(i, mid, sets, Ri, remaining, mine, weathers){
   const slot = S.slots[i];
   const f0 = (S.switchFrom != null && S.switchFrom !== S.field) ? S.switchFrom : S.field;
   const pending = f0 !== S.field;
-  const st = (S.stages && S.stages[f0]) || {def:0, spd:0, eva:0};
-  const alive = ['moltres','steelix','shedinja'].filter(k => k !== f0 && S.hp[k] > 0);
+  const st = stagesOf(f0);
+  const alive = FIELD_KEYS.filter(k => k !== f0 && S.hp[k] > 0);
   const tgtSide = new Set(); if (S.spikes) tgtSide.add('SIDE_STATUS_SPIKES'); if (S.future > 0) tgtSide.add('SIDE_STATUS_FUTUREATTACK');
+  for (const k in (S.oside || {})) if (S.oside[k] > 0) tgtSide.add('SIDE_STATUS_' + k);
   const userSide = new Set(Object.keys(S.eside).filter(k => S.eside[k] > 0).map(k => 'SIDE_STATUS_' + k));
   const down = S.slots.filter(x => x.down).length;
   const tr = CAND_TR.length ? CAND_TR : D.trainers;
@@ -1106,9 +1226,9 @@ function likOnUse(i, mid, sets, Ri, remaining, mine, weathers){
     field: f0, hp: S.hp[f0], weather: S.weather, turn: S.turn,
     userStages: {...slotSt(slot)}, userHpPct: slot.hpPct ?? 100, userStatus: slot.status || 'none', userFlags: new Set(slot.tormented ? ['STATUS2_TORMENT'] : []), userSide,
     prevMove: slot.last || 0, protectCount: slot.protect || 0, stock: slot.stock || 0, firstMove: mine.length === 0, userParty: Math.max(0, 2 - down),
-    tgtStatus: S.ostatus[f0], tgtStages: {atk:0, spa:0, spe:0, def:st.def||0, spd:st.spd||0, eva:st.eva||0},
+    tgtStatus: S.ostatus[f0], tgtStages: {atk:st.atk||0, spa:st.spa||0, spe:st.spe||0, def:st.def||0, spd:st.spd||0, eva:st.eva||0},
     tgtFlags: new Set(S.sub[f0] ? ['STATUS2_SUBSTITUTE'] : []), tgtSide, ourLast: S.ourLast[f0] || 0, ourHist: S.ourHist[f0] || [],
-    tgtFirst: pending ? false : !!S.tgtFirst, ourParty: alive.length, ourPartyStatus: ['moltres','steelix','shedinja'].filter(k => S.hp[k] > 0).map(k => S.ostatus[k]),
+    tgtFirst: pending ? false : !!S.tgtFirst, ourParty: alive.length, ourPartyStatus: FIELD_KEYS.filter(k => S.hp[k] > 0).map(k => S.ostatus[k]),
   };
   const it = m => (D.ai.items[m.item] || ['NONE'])[0];
   const out = {};
@@ -1162,10 +1282,10 @@ function setField(f){
   S.ourLast[f] = 0; S.ourHist[f] = []; S.tgtFirst = true;
   S.sub[prev] = false;
   S.stages = S.stages || blank().stages;
-  if (S.baton){ Object.assign(S.stages[f], {def:S.baton.def, spd:S.baton.spd, eva:S.baton.eva}); S.sub[f] = S.baton.sub; S.baton = null; }
-  else S.stages[f] = {def:0, spd:0, eva:0};
-  S.stages[prev] = {def:0, spd:0, eva:0};
-  S.field = f; S.log.push({t:S.log.length+1, txt:`場:${ME[f].name}`}); render();
+  if (S.baton){ const b = S.baton; S.stages[f] = {atk:b.atk||0, def:b.def||0, spa:b.spa||0, spd:b.spd||0, spe:b.spe||0, eva:b.eva||0}; S.sub[f] = b.sub; S.baton = null; }
+  else S.stages[f] = ZST();
+  S.stages[prev] = ZST();
+  S.field = f; S.log.push({t:S.log.length+1, txt:`場:${P[f].name}`}); render();
 }
 function fillBrain(kind){
   snapshot();
@@ -1183,7 +1303,7 @@ function setTrainer(id){
 function nextBattle(){
   snapshot();
   if (!S.sample) S.streak += 1;
-  S.slots = [blankSlot(),blankSlot(),blankSlot()]; S.log = []; S.field = 'moltres'; S.sample = false; S.trainer = null; S.stages = blank().stages; S.switchFrom = null; Object.assign(S, ourDefaults());
+  S.slots = [blankSlot(),blankSlot(),blankSlot()]; S.log = []; S.field = FIELD_KEYS[0]; S.sample = false; S.trainer = null; S.stages = blank().stages; S.switchFrom = null; Object.assign(S, ourDefaults());
   render(); window.scrollTo({top:0}); const el = document.getElementById('tq'); el && el.focus();
 }
 
@@ -1194,7 +1314,7 @@ function statusOf(r, slot){
   if (slot.down) return {cls:'', label:'たおした', num:'×'};
   const danger = r.dMax;
   if (r.allMin === 0) return {cls:'danger', label:'わるあがき', num:'!'};
-  if (danger === 0) return {cls:'safe', label:'ヌケニンOK', num:'0'};
+  if (danger === 0) return {cls:'safe', label: WG ? P[WG].name + 'OK' : '抜群なし', num:'0'};
   return {cls:'danger', label:'あと', num:String(r.dMax)};
 }
 function render(){
@@ -1206,14 +1326,13 @@ function render(){
   const nbr = nextBrain(nb);
   document.getElementById('streak-sub').textContent = `次は${nb}戦目(7連戦の${(S.streak % 7) + 1}戦目)` + (nbr === nb ? ' · リラ戦' : nbr ? ` · リラは${nbr}戦目` : '');
   document.getElementById('field').innerHTML = FIELD_KEYS.map((k,idx) =>
-    `<button type="button" data-field="${k}" aria-pressed="${S.field===k}"><b>${ME[k].name}</b><span>${ME[k].sub} · ${idx+1}</span></button>`).join('');
+    `<button type="button" data-field="${k}" aria-pressed="${S.field===k}"><b>${esc(P[k].name)}</b><span>${P[k].pressure ? 'プレッシャー 2減る' : '1減る'} · ${idx+1}</span></button>`).join('');
   document.getElementById('undo').disabled = !S.hist.length;
   const stg = getStages(), sg = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v);
-  document.getElementById('stage').innerHTML = `<span class="stage-lbl">${ME[S.field].name}の<br>能力ランク</span>
-    <span>防御</span><button type="button" class="mini" data-stage="def:-1" aria-label="防御ランクを下げる">−</button><span class="px">${sg(stg.def)}</span><button type="button" class="mini" data-stage="def:1" aria-label="防御ランクを上げる">＋</button>
-    <span>特防</span><button type="button" class="mini" data-stage="spd:-1" aria-label="特防ランクを下げる">−</button><span class="px">${sg(stg.spd)}</span><button type="button" class="mini" data-stage="spd:1" aria-label="特防ランクを上げる">＋</button>
-    <span>回避</span><button type="button" class="mini" data-stage="eva:-1" aria-label="回避ランクを下げる">−</button><span class="px">${sg(stg.eva)}</span><button type="button" class="mini" data-stage="eva:1" aria-label="回避ランクを上げる">＋</button>
-    <button type="button" class="mini" data-stage-reset ${stg.def || stg.spd || stg.eva ? '' : 'disabled'}>リセット</button>`;
+  document.getElementById('stage').innerHTML = `<span class="stage-lbl">${esc(P[S.field].name)}の<br>能力ランク</span>` +
+    ST_KEYS.map(([k,l]) => `<span class="stg"><span>${l}</span><button type="button" class="mini" data-stage="${k}:-1" aria-label="${l}ランクを下げる">−</button><span class="px">${sg(stg[k])}</span><button type="button" class="mini" data-stage="${k}:1" aria-label="${l}ランクを上げる">＋</button></span>`).join('') +
+    `<button type="button" class="mini" data-stage-reset ${ST_KEYS.some(([k]) => stg[k]) ? '' : 'disabled'}>リセット</button>`;
+  renderLegend();
   document.getElementById('chips').innerHTML = S.slots.map((s,i) => {
     const st = statusOf(R[i], s);
     return `<button type="button" class="chip ${st.cls} ${s.down?'down':''}" data-jump="${i}"><span class="dot">${esc(st.num)}</span>${s.sp ? esc(s.sp) : `${i+1}匹目`}</button>`;
@@ -1221,7 +1340,7 @@ function render(){
   // お知らせ
   const notes = [];
   if (S.switchFrom != null && S.switchFrom !== S.field)
-    notes.push(`<div class="notice"><span>交代しました。次に入力する相手の技は、交代前の${ME[S.switchFrom].name}を見て選ばれたかもしれないので、${ME[S.switchFrom].name}・${ME[S.field].name}のどちらでも成り立つ推理だけ出します。</span><button class="btn" data-act="switch-clear">ひんし・バトンタッチの後なので${ME[S.field].name}だけで判定</button></div>`);
+    notes.push(`<div class="notice"><span>交代しました。次に入力する相手の技は、交代前の${P[S.switchFrom].name}を見て選ばれたかもしれないので、${P[S.switchFrom].name}・${P[S.field].name}のどちらでも成り立つ推理だけ出します。</span><button class="btn" data-act="switch-clear">ひんし・バトンタッチの後なので${P[S.field].name}だけで判定</button></div>`);
   if (S.sample) notes.push(`<div class="notice"><span>サンプル表示中です(ゲンガーとラティオスで4ターン分を記録した例)。</span><button class="btn" data-act="clear-sample">サンプルを消して始める</button></div>`);
   const bk = brainAt(nb), isBrain = S.slots.some(s => s.brain);
   if (bk && !isBrain) notes.push(`<div class="notice warn"><span><b>${nb}戦目はタワータイクーン・リラ(${bk==='gold'?'金':'銀'}のパーティ)です。</b>相手のポケモンは決まっています。</span><button class="btn primary" data-brain="${bk}">リラのポケモンを入れる</button></div>`);
@@ -1236,6 +1355,17 @@ function render(){
   // ログ
   document.getElementById('log').innerHTML = S.log.length ? S.log.slice().reverse().map(l => `<li><span class="t">${l.t}</span><span>${esc(l.txt)}</span></li>`).join('') : '<li>技をタップすると、ここに1行ずつ記録されます。</li>';
 }
+function renderLegend(){
+  const fn = esc(P[S.field].name), pr = FIELD_KEYS.filter(k => P[k].pressure).map(k => esc(P[k].name));
+  document.getElementById('lg-weak-tag').textContent = weakWord();
+  document.getElementById('lg-ind').hidden = !WG;
+  document.getElementById('lg-weak').textContent = WG
+    ? `${P[WG].name}に当たる攻撃技(${ALL_TYPES.filter(t => effX10(t, P[WG].types) > 10).map(t => TYJA[t]).join('・')}、みらいよち)。ここのPPを0にするのが目標です。`
+    : `場に出ている自分のポケモン(いまは${P[S.field].name})に効果抜群の攻撃技。場を切り替えると表示も変わります。`;
+  document.getElementById('lg-src').innerHTML =
+    (pr.length ? `技をタップすると、場が${pr.join('・')}なら自分以外を対象にする技は2減ります(第3世代のプレッシャー。まもるで防いでも減ります)。` : '技をタップするとPPが1減ります。') +
+    `<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>で場の切り替え、<kbd>Z</kbd>で取り消し。全技のPPが尽きると相手はわるあがきを出` + (WG ? `し、これは第3世代では${esc(P[WG].name)}にも当たります。` : 'します。');
+}
 function slotHTML(slot, r, i){
   const no = `<div class="slot-no">${i+1}匹目</div>`;
   if (!slot.sp){
@@ -1249,11 +1379,13 @@ function slotHTML(slot, r, i){
   const range = (a,b) => a===b ? `${a}` : `${a}〜${b}`;
   let statusSub;
   if (!r.sets.length) statusSub = '条件に合う型がありません。取り消しで戻してください。';
-  else statusSub = `弱点技の残りPP ${range(r.wMin, r.wMax)} ・ 間接技 ${range(r.iMin, r.iMax)} ・ 全技の残り最少 ${r.allMin}`;
-  const label = st.cls === 'safe' ? '<b>ヌケニンを出せます</b>弱点・間接技のPPはすべて0' :
-                st.label === 'わるあがき' ? '<b>わるあがき注意</b>全技PP切れの型があり、ヌケニンにも当たります' :
+  else statusSub = WG ? `弱点技の残りPP ${range(r.wMin, r.wMax)} ・ 間接技 ${range(r.iMin, r.iMax)} ・ 全技の残り最少 ${r.allMin}`
+                      : `${esc(P[S.field].name)}に抜群の技の残りPP ${range(r.wMin, r.wMax)} ・ 全技の残り最少 ${r.allMin}`;
+  const wn = WG ? esc(P[WG].name) : '';
+  const label = st.cls === 'safe' ? (WG ? `<b>${wn}を出せます</b>弱点・間接技のPPはすべて0` : `<b>${esc(P[S.field].name)}に抜群の技はありません</b>抜群技のPPはすべて0`) :
+                st.label === 'わるあがき' ? (WG ? `<b>わるあがき注意</b>全技PP切れの型があり、${wn}にも当たります` : '<b>わるあがき注意</b>全技PP切れの型があります') :
                 slot.down ? '<b>たおした</b>' :
-                `<b>危険技PP 残り</b>最も多く残っている型で数えた値`;
+                `<b>${WG ? '危険技' : '抜群技'}PP 残り</b>最も多く残っている型で数えた値`;
   const moves = r.moves.map(e => moveHTML(e, slot, r, i)).join('');
   const sets = r.sets.map(({m,p}) => setHTML(m, p, i)).join('');
   const excl = slot.excl.length ? `<div class="excl">除外した型: ${slot.excl.map(id => `<button type="button" data-restore-set="${i}:${id}">#${MON.get(id).set} を戻す</button>`).join('')}</div>` : '';
@@ -1261,7 +1393,7 @@ function slotHTML(slot, r, i){
     <div class="slot-head"><div>${no}<h2 class="sp-name">${esc(slot.sp)}${slot.brain ? ` <span class="brain-tag">${BRAIN_LABEL[slot.brain]}</span>` : ''}</h2><div class="types">${sp.types.map(tyChip).join('')}</div>${fastAlert(r, slot)}</div>
       <div class="head-btns"><button type="button" class="mini" data-down="${i}">${slot.down?'戻す':'たおした'}</button><button type="button" class="mini" data-clear="${i}">変更</button></div></div>
     <div class="status ${st.cls}"><span class="px big">${esc(st.num)}</span><span class="lbl">${label}</span><span class="sub">${statusSub}</span></div>${inferHTML(slot, r, i)}${estHTML(slot, r, i)}
-    <div class="sec"><span>技(タップで −${S.field==='moltres'?'2':'1'} / 自分に使う技は −1)</span><span>候補 ${r.sets.length}型</span></div>
+    <div class="sec"><span>${P[S.field].pressure ? '技(タップで −2 / 自分に使う技は −1)' : '技(タップで −1)'}</span><span>候補 ${r.sets.length}型</span></div>
     <div class="moves">${moves}</div>
     <div class="sec"><span>候補の型(出やすさの目安)</span></div>
     <div class="sets">${sets}</div>${excl}
@@ -1269,14 +1401,16 @@ function slotHTML(slot, r, i){
 }
 const RAT = [[10,40],[10,35],[10,30],[10,25],[10,20],[10,15],[10,10],[15,10],[20,10],[25,10],[30,10],[35,10],[40,10]];
 const spStage = (v, stg) => Math.floor(v * RAT[(stg||0)+6][0] / RAT[(stg||0)+6][1]);
-function speedKind(m, spe){ const me = ME.moltres.spe; return spStage(speedOf(m,IVR[0]), spe) > me ? 'fast' : spStage(speedOf(m,IVR[1]), spe) < me ? 'slow' : 'tie'; }
+// 場に出ている自分のポケモンの素早さ(能力ランクとまひを反映)
+function mySpe(){ const v = spStage(P[S.field].spe, stagesOf(S.field).spe); return S.ostatus[S.field] === 'para' ? Math.floor(v / 4) : v; }
+function speedKind(m, spe){ const me = mySpe(); return spStage(speedOf(m,IVR[0]), spe) > me ? 'fast' : spStage(speedOf(m,IVR[1]), spe) < me ? 'slow' : 'tie'; }
 function fastAlert(r, slot){
   if (!r.sets.length) return '';
   const spe = slot && slot.st ? slot.st.spe : 0;
   const k = r.sets.map(({m}) => speedKind(m, spe));
   const f = k.filter(x => x==='fast').length, t = k.filter(x => x==='tie').length, n = k.length;
-  if (f === n) return `<div class="fast-alert">⚡ ファイヤーより速い</div>`;
-  if (f) return `<div class="fast-alert">⚡ ファイヤーより速い型あり(${f}/${n})</div>`;
+  if (f === n) return `<div class="fast-alert">⚡ ${esc(P[S.field].name)}より速い</div>`;
+  if (f) return `<div class="fast-alert">⚡ ${esc(P[S.field].name)}より速い型あり(${f}/${n})</div>`;
   if (t) return `<div class="fast-alert tie">同速圏の型あり(${t}/${n})</div>`;
   return '';
 }
@@ -1298,13 +1432,13 @@ function estHTML(slot, r, i){
 function inferHTML(slot, r, i){
   const live = (slot.hints || []).filter(h => r.sets.some(x => x.m.id === h.set));
   let out = '';
-  if (slot.likWarn) out += `<div class="infer warn"><h3><span>確率: 説明のつかない技</span></h3><div class="inf-item">${esc(MV[slot.likWarn.M].ja)}は、入力した状況(${ME[slot.likWarn.field].name}のHP・状態・能力ランク)では、どの候補の型も選ばない計算でした。このターンは型の確率に反映していません。HPや能力ランクの入力を確かめてください。</div></div>`;
+  if (slot.likWarn) out += `<div class="infer warn"><h3><span>確率: 説明のつかない技</span></h3><div class="inf-item">${esc(MV[slot.likWarn.M].ja)}は、入力した状況(${P[slot.likWarn.field].name}のHP・状態・能力ランク)では、どの候補の型も選ばない計算でした。このターンは型の確率に反映していません。HPや能力ランクの入力を確かめてください。</div></div>`;
   if (slot.hintAll && !live.length && r.sets.length) out = `<div class="infer warn"><h3><span>推理: 説明のつかない技</span><button type="button" class="mini" data-hint-dismiss="${i}:all">閉じる</button></h3>
     <div class="inf-item">${esc(MV[slot.hintAll.M].ja)}は、どの型でもCOMが選ばない計算になりました。相手の技で倒されそうなほどHPが低かったか、場・能力ランクの入力違い、技の押し間違いの可能性があります。型は除外していません。</div></div>`;
   if (live.length && live.length >= r.sets.length){
     const h = live[live.length - 1], f = (h.parts ? h.parts[h.parts.length-1].field : h.field);
     return `<div class="infer warn"><h3><span>推理: 説明のつかない技</span><button type="button" class="mini" data-hint-dismiss="${i}:all">閉じる</button></h3>
-    <div class="inf-item">${esc(MV[h.M].ja)}は、どの候補の型でも${ME[f].name}には選ばない計算です。交代したターンなら、相手の技より先に「場」を切り替えてください。ほかに、HPが低くてその技で倒されそうだった、能力ランクの入力違い、技の押し間違いが考えられます。型は除外していません。</div></div>`;
+    <div class="inf-item">${esc(MV[h.M].ja)}は、どの候補の型でも${P[f].name}には選ばない計算です。交代したターンなら、相手の技より先に「場」を切り替えてください。ほかに、HPが低くてその技で倒されそうだった、能力ランクの入力違い、技の押し間違いが考えられます。型は除外していません。</div></div>`;
   }
   if (!live.length) return out;
   const items = live.map(h => {
@@ -1313,16 +1447,16 @@ function inferHTML(slot, r, i){
     const sg2 = v => (v>0?'+':v<0?'−':'±') + Math.abs(v||0);
     const conds = [];
     for (const p of parts){
-      const who = ME[p.field].name;
+      const who = P[p.field].name;
       if (p.hp) conds.push(`そのときの${who}のHPが${p.hp}以上`);
-      conds.push(`${who}の防御${sg2(p.def)}・特防${sg2(p.spd)}・回避${sg2(p.eva)}`);
+      conds.push(`${who}の防御${sg2(p.def)}・特防${sg2(p.spd)}・回避${sg2(p.eva)}` + [['atk','攻撃'],['spa','特攻'],['spe','素早さ']].filter(([k]) => p[k]).map(([k,l]) => `・${l}${sg2(p[k])}以下`).join(''));
       if (p.torment) conds.push(`いちゃもんで${esc(MV[p.X].ja)}を封じていない`);
     }
     if (h.ust && stTxt(h.ust)) conds.push(`${esc(slot.sp)}の${stTxt(h.ust)}`);
     const head = `#${m.set}(${m.moves.map(x => esc(MV[x].ja)).join('・')})なら、`;
     const why = parts.length === 1
-      ? `${head}${ME[parts[0].field].name}には${esc(MV[h.M].ja)}より<b>${esc(MV[parts[0].X].ja)}</b>を必ず選びます。`
-      : `${head}交代前の${ME[parts[0].field].name}が相手なら<b>${esc(MV[parts[0].X].ja)}</b>、交代後の${ME[parts[1].field].name}が相手なら<b>${esc(MV[parts[1].X].ja)}</b>を必ず選ぶので、どちらを見て選んでも${esc(MV[h.M].ja)}にはなりません。`;
+      ? `${head}${P[parts[0].field].name}には${esc(MV[h.M].ja)}より<b>${esc(MV[parts[0].X].ja)}</b>を必ず選びます。`
+      : `${head}交代前の${P[parts[0].field].name}が相手なら<b>${esc(MV[parts[0].X].ja)}</b>、交代後の${P[parts[1].field].name}が相手なら<b>${esc(MV[parts[1].X].ja)}</b>を必ず選ぶので、どちらを見て選んでも${esc(MV[h.M].ja)}にはなりません。`;
     return `<div class="inf-item"><span class="why">${why}</span>
       ${conds.length ? `<span class="cond">条件: ${conds.join(' / ')}</span>` : ''}
       <span class="inf-btns"><button type="button" class="go" data-hint-apply="${i}:${h.set}">#${m.set}を除外</button><button type="button" data-hint-dismiss="${i}:${h.set}">無視</button></span></div>`;
@@ -1335,7 +1469,7 @@ function moveHTML(e, slot, r, i){
   const m = MV[e.id], used = slot.used[e.id] || 0, rem = Math.max(0, m.pp - used);
   const partial = e.n < r.sets.length;
   const tags = [];
-  if (e.cls === 'weak') tags.push('<span class="tag weak">弱点</span>');
+  if (e.cls === 'weak') tags.push(`<span class="tag weak">${weakWord()}</span>`);
   if (e.cls === 'ind') tags.push('<span class="tag ind">間接</span>');
   if (WARN[m.effect]) tags.push(`<span class="tag">${WARN[m.effect]}</span>`);
   if (ONCE[m.effect]) tags.push(`<span class="tag">${ONCE[m.effect]}</span>`);
@@ -1346,13 +1480,13 @@ function moveHTML(e, slot, r, i){
   const c = cost(e.id);
   if (m.effect === 'COUNTER' || m.effect === 'MIRROR_COAT') tags.push(`<span class="tag">既定は−1</span>`);
   return `<div style="position:relative;min-width:0">
-    <button type="button" class="mv ${e.cls} ${partial?'partial':''} ${rem===0?'out':''} ${used && isCounter(e.id) && S.field === 'moltres' && rem > 0 ? 'has-cs' : ''}" data-use="${i}:${e.id}" style="width:100%" aria-label="${esc(m.ja)} を使われた。残りPP ${rem}">
+    <button type="button" class="mv ${e.cls} ${partial?'partial':''} ${rem===0?'out':''} ${used && isCounter(e.id) && P[S.field].pressure && rem > 0 ? 'has-cs' : ''}" data-use="${i}:${e.id}" style="width:100%" aria-label="${esc(m.ja)} を使われた。残りPP ${rem}">
       <span class="mv-top"><span class="mv-name">${esc(m.ja)}</span>${tyChip(m.type)}</span>
       <span class="tags">${tags.join('')}</span>
       <span class="mv-pp"><span class="max">PP</span><span class="px pp">${rem}</span><span class="max px">/${m.pp}</span><span class="cost">${rem===0?'PP切れ':(m.power>1?'威力'+m.power+' · ':'')+'−'+c}</span></span>
     </button>
     ${used ? `<button type="button" class="restore" data-restore="${i}:${e.id}" aria-label="${esc(m.ja)} のPPを1戻す" title="1戻す">↺</button>` : ''}
-    ${used && isCounter(e.id) && S.field === 'moltres' && rem > 0 ? `<button type="button" class="csucc" data-csucc="${i}:${e.id}" title="ファイヤーへの${esc(m.ja)}が成功したとき、プレッシャーの分を1追加で減らします">成功した −1</button>` : ''}
+    ${used && isCounter(e.id) && P[S.field].pressure && rem > 0 ? `<button type="button" class="csucc" data-csucc="${i}:${e.id}" title="${esc(P[S.field].name)}への${esc(m.ja)}が成功したとき、プレッシャーの分を1追加で減らします">成功した −1</button>` : ''}
   </div>`;
 }
 function fmtPct(x){ const v = x * 100; return v === 0 ? '0%' : v < 0.1 ? '0.1%未満' : v < 10 ? v.toFixed(1) + '%' : Math.round(v) + '%'; }
@@ -1360,9 +1494,9 @@ function setHTML(m, p, i){
   const evs = m.evv ? ['H','A','B','C','D','S'].map((l,k) => m.evv[k] ? l + m.evv[k] : '').filter(Boolean).join(' ')
                     : EV_ORDER.filter(k => m.evs.includes(k)).map(k => EV_LABEL[k] + Math.floor(510/m.evs.length)).join(' ');
   const spe = (S.slots[i] && S.slots[i].st) ? S.slots[i].st.spe : 0;
-  const s31 = spStage(speedOf(m, IVR[1]), spe), s21 = spStage(speedOf(m, IVR[0]), spe), me = ME.moltres.spe;
+  const s31 = spStage(speedOf(m, IVR[1]), spe), s21 = spStage(speedOf(m, IVR[0]), spe), me = mySpe(), mn = esc(P[S.field].name);
   const kind = s21 > me ? 'fast' : s31 < me ? 'slow' : 'tie';
-  const vs = kind==='fast' ? `<span class="spd fast">⚡ S${s21===s31 ? s31 : s21+'〜'+s31} ファイヤーより速い</span>` : kind==='tie' ? `<span class="spd tie">S${s21}〜${s31} 同速圏</span>` : `<span>S ${s21===s31 ? s31 : s21+'〜'+s31} · ファイヤーより遅い</span>`;
+  const vs = kind==='fast' ? `<span class="spd fast">⚡ S${s21===s31 ? s31 : s21+'〜'+s31} ${mn}より速い</span>` : kind==='tie' ? `<span class="spd tie">S${s21}〜${s31} 同速圏</span>` : `<span>S ${s21===s31 ? s31 : s21+'〜'+s31} · ${mn}より遅い</span>`;
   return `<div class="set ${kind==='fast'?'fast':''}">
     <div class="set-top"><span class="pct">${m.brain ? '確定' : fmtPct(p)}</span><span class="item">${esc(m.item)}</span><span class="nat">${esc(m.nature)}</span>
       ${m.brain ? '' : `<span class="set-btns"><button type="button" data-lock="${i}:${m.id}">この型</button><button type="button" data-excl="${i}:${m.id}">除外</button></span>`}</div>
@@ -1397,7 +1531,7 @@ function renderTbar(R){
   renderTsugg(v);
 }
 function tlistHTML(t, R){
-  const iv = t.iv, me = ME.moltres.spe;
+  const iv = t.iv, me = mySpe();
   const taken = new Map(); S.slots.forEach((sl, i) => { if (sl.sp && !sl.brain) taken.set(sl.sp, i); });
   // 型が1つに決まった枠の道具は、同じパーティに2つ出ない
   const usedItems = new Map();
@@ -1415,11 +1549,11 @@ function tlistHTML(t, R){
     return `<tr class="${(inSlot && !live) || itemBlock ? 'dim' : ''} ${live ? 'hit' : ''}">
       <td class="px">No.${m.id}</td><td class="tl-sp">${esc(m.sp)}${note}</td><td>${esc(m.item)}</td>
       <td class="px tl-spe ${kind}">${spe}${kind === 'fast' ? ' ⚡' : kind === 'tie' ? ' =' : ''}</td>
-      <td class="tl-mv">${m.moves.map(x => `<span class="${moveClass(x, m)}">${esc(MV[x].ja)}</span>`).join('・')}${weak ? '' : ' <span class="tl-tag ok">弱点技なし</span>'}</td></tr>`;
+      <td class="tl-mv">${m.moves.map(x => `<span class="${moveClass(x, m)}">${esc(MV[x].ja)}</span>`).join('・')}${weak ? '' : ` <span class="tl-tag ok">${weakWord()}技なし</span>`}</td></tr>`;
   }).join('');
   return `<div class="tlist"><div class="tl-head"><span>${esc(t.ja)}の手持ち候補 ${rows.length}型(個体値${iv}・レベル50)</span><span class="tl-sort">${sortBtn('no','番号順')}${sortBtn('spe','素早さ順')}${sortBtn('sp','名前順')}${sortBtn('item','持ち物順')}</span></div>
     <div class="tl-wrap"><table><thead><tr><th>番号</th><th>ポケモン</th><th>持ち物</th><th>素早さ</th><th>技</th></tr></thead><tbody>${body}</tbody></table></div>
-    <p class="hint">素早さはファイヤー(154)より速いと⚡、同じだと=。赤い技はヌケニンに当たる技です。</p></div>`;
+    <p class="hint">素早さは${esc(P[S.field].name)}(${me})より速いと⚡、同じだと=。赤い技は${WG ? esc(P[WG].name) + 'に当たる技' : esc(P[S.field].name) + 'に効果抜群の技'}です。</p></div>`;
 }
 function renderTsugg(q){
   const ul = document.getElementById('tsg'); if (!ul) return;
@@ -1442,17 +1576,167 @@ function renderSugg(i, q){
   list = pool.filter(s => !taken.has(s.sp) && s.key.includes(key));
   list.sort((a,b) => (b.key.startsWith(key) - a.key.startsWith(key)) || (b.rate - a.rate));
   list = list.slice(0, 8);
-  ul.innerHTML = list.length ? list.map((s,k) => `<li><button type="button" class="${k===0?'first':''}" data-pick="${i}:${esc(s.sp)}"><span class="nm">${esc(s.sp)}</span>${s.types.map(tyChip).join('')}<span class="meta">${t ? s.sets.filter(m => t.set.has(m.id)).length : s.sets.length}型 · 弱点技あり ${(t ? s.sets.filter(m => t.set.has(m.id)) : s.sets).filter(m => m.moves.some(x => moveClass(x,m)==='weak')).length}型</span></button></li>`).join('')
+  ul.innerHTML = list.length ? list.map((s,k) => `<li><button type="button" class="${k===0?'first':''}" data-pick="${i}:${esc(s.sp)}"><span class="nm">${esc(s.sp)}</span>${s.types.map(tyChip).join('')}<span class="meta">${t ? s.sets.filter(m => t.set.has(m.id)).length : s.sets.length}型 · ${weakWord()}技あり ${(t ? s.sets.filter(m => t.set.has(m.id)) : s.sets).filter(m => m.moves.some(x => moveClass(x,m)==='weak')).length}型</span></button></li>`).join('')
     : `<li class="hint">「${esc(q)}」に当たるポケモンは${t ? esc(t.ja) + 'の手持ちにいません' : '50連勝以降のタワーに出ません'}。</li>`;
 }
+
+// ---------- パーティ登録 ----------
+const pedit = document.getElementById('pedit');
+const SP_LIST = Object.keys(SPD).map(n => ({n, key:kana(n), dex:DEX[n] || 999})).sort((a, b) => a.dex - b.dex);
+const MV_LIST = Object.keys(MV).filter(id => MV[id].c !== 'STRUGGLE').map(id => ({id:+id, n:MV[id].ja, key:kana(MV[id].ja)})).sort((a, b) => a.id - b.id);
+const SP_BY_KEY = new Map(SP_LIST.map(x => [x.key, x.n])), MV_BY_KEY = new Map(MV_LIST.map(x => [x.key, x.id]));
+const PSTATS = [['hp','HP',0],['def','防御',2],['spd','特防',4],['spe','素早さ',5]];   // [キー, 表示, 種族値の位置]
+// その種族・レベルで取りうる実数値の範囲(個体値0〜31、努力値0〜255、性格補正)。入力ミスに気づくための目安
+function statRange(sp, key, level){
+  const b = SPD[sp].b[PSTATS.find(x => x[0] === key)[2]];
+  const raw = (iv, ev) => Math.floor((2 * b + iv + ev) * level / 100);
+  if (key === 'hp') return b === 1 ? [1, 1] : [raw(0, 0) + level + 10, raw(31, 63) + level + 10];
+  return [Math.floor((raw(0, 0) + 5) * 90 / 100), Math.floor((raw(31, 63) + 5) * 110 / 100)];
+}
+let PED = null;   // 編集中の下書き
+const draftOf = list => list.map(e => ({sp:e.sp, level:e.level, hp:e.hp, def:e.def, spd:e.spd, spe:e.spe, ability:e.ability, gender:e.gender, mv:[0,1,2,3].map(k => e.moves[k] ? MV[e.moves[k]].ja : '')}));
+function openParty(){
+  PED = draftOf(PARTY); drawParty(); pedit.hidden = false;
+  // 上に固定している操作盤に隠れない位置まで送る
+  const deck = document.getElementById('deck'), fixed = getComputedStyle(deck).position === 'sticky';
+  window.scrollTo({top: Math.max(0, pedit.getBoundingClientRect().top + window.scrollY - (fixed ? deck.offsetHeight : 0) - 8)});
+}
+function closeParty(){ PED = null; pedit.hidden = true; pedit.innerHTML = ''; }
+function drawParty(){
+  pedit.innerHTML = `<div class="pe-head"><h2>自分のパーティ</h2><span class="hint">ゲームの「つよさをみる」に出る数値をそのまま入れてください。攻撃・特攻は使いません(COMの技選択に関係しないため)。</span></div>
+    <div class="pe-cards">${PED.map((e, i) => `<div class="pcard">
+      <div class="slot-no">${i+1}匹目</div>
+      <label class="pe-f">ポケモン<input data-pf="${i}:sp" autocomplete="off" value="${esc(e.sp)}" placeholder="名前(ひらがなOK)"></label>
+      <ul class="pe-sugg" id="psg${i}"></ul>
+      <div class="types" id="pty${i}"></div>
+      <div class="pe-row">
+        <label class="pe-f">特性<select data-pf="${i}:ability" id="pab${i}"></select></label>
+        <label class="pe-f">性別<select data-pf="${i}:gender" id="pge${i}"></select></label>
+        <label class="pe-f">レベル<input type="number" inputmode="numeric" min="1" max="100" data-pf="${i}:level" value="${e.level ?? ''}"></label>
+      </div>
+      <div class="pe-row">${PSTATS.map(([k, l]) => `<label class="pe-f">${l}<input type="number" inputmode="numeric" min="1" max="999" data-pf="${i}:${k}" value="${e[k] ?? ''}"><small id="prg${i}${k}"></small></label>`).join('')}</div>
+      <div class="pe-row pe-mv">${[0,1,2,3].map(k => `<label class="pe-f">技${k+1}<input data-pf="${i}:mv${k}" autocomplete="off" value="${esc(e.mv[k])}" placeholder="${k ? '(空欄可)' : '技の名前'}"></label>`).join('')}</div>
+      <ul class="pe-sugg" id="pmg${i}"></ul>
+    </div>`).join('')}</div>
+    <div class="pe-err" id="pe-err" role="alert"></div>
+    <div class="pe-act"><button type="button" class="btn primary" data-pact="save">保存して使う</button><button type="button" class="btn" data-pact="cancel">キャンセル</button><button type="button" class="btn" data-pact="default">初期のパーティに戻す</button></div>
+    <p class="hint" style="margin:0">保存すると、自分側のHP・状態・能力ランクと「取り消し」の履歴をリセットします。相手のポケモンとPPの記録は残ります。数値の下の範囲は、その種族・レベルで取りうる実数値です(赤は範囲外)。</p>`;
+  PED.forEach((_, i) => refreshCard(i));
+}
+function refreshCard(i){
+  const e = PED[i], ok = !!SPD[e.sp];
+  const ab = document.getElementById(`pab${i}`), ge = document.getElementById(`pge${i}`);
+  document.getElementById(`pty${i}`).innerHTML = ok ? SPD[e.sp].t.map(t => tyChip(TYJA[t])).join('') : '<span class="hint" style="margin:0">候補からポケモンを選んでください</span>';
+  if (ok){
+    const sp = SPD[e.sp], gs = genders(e.sp);
+    if (!sp.a.includes(e.ability)) e.ability = sp.a[0];
+    if (!gs.includes(e.gender)) e.gender = gs[0];
+    ab.innerHTML = sp.a.map(a => `<option value="${a}"${a === e.ability ? ' selected' : ''}>${esc(ABJ[a] || a)}</option>`).join('');
+    ge.innerHTML = gs.map(g => `<option value="${g}"${g === e.gender ? ' selected' : ''}>${GENDER_LABEL[g]}</option>`).join('');
+    ab.disabled = sp.a.length < 2; ge.disabled = gs.length < 2;
+  } else { ab.innerHTML = ge.innerHTML = '<option>—</option>'; ab.disabled = ge.disabled = true; }
+  refreshRanges(i);
+}
+function refreshRanges(i){
+  const e = PED[i], ok = !!SPD[e.sp] && Number.isInteger(e.level) && e.level >= 1 && e.level <= 100;
+  for (const [k] of PSTATS){
+    const el = document.getElementById(`prg${i}${k}`);
+    if (!ok){ el.textContent = ''; el.className = ''; continue; }
+    const [lo, hi] = statRange(e.sp, k, e.level), v = e[k];
+    el.textContent = lo === hi ? `${lo}のみ` : `${lo}〜${hi}`;
+    el.className = Number.isFinite(v) && (v < lo || v > hi) ? 'bad' : '';
+  }
+}
+function peSugg(i, f, q){
+  const isSp = f === 'sp', ul = document.getElementById((isSp ? 'psg' : 'pmg') + i), key = kana(q);
+  document.getElementById((isSp ? 'pmg' : 'psg') + i).innerHTML = '';
+  let list = key ? (isSp ? SP_LIST : MV_LIST).filter(x => x.key.includes(key)) : [];
+  if (!key || (list.length === 1 && list[0].key === key)){ ul.innerHTML = ''; return; }
+  list = list.filter(x => x.key.startsWith(key)).concat(list.filter(x => !x.key.startsWith(key)));
+  const more = list.length > 10; list = list.slice(0, 10);
+  ul.innerHTML = list.length
+    ? list.map((x, k) => `<li><button type="button" class="${k === 0 ? 'first' : ''}" data-ppick="${i}:${f}:${esc(x.n)}">${esc(x.n)}${isSp ? '' : tyChip(MV[x.id].type)}</button></li>`).join('') + (more ? '<li class="hint">…ほかにもあります</li>' : '')
+    : `<li class="hint">「${esc(q)}」に当たる${isSp ? 'ポケモン' : '技'}はありません。</li>`;
+}
+function pePick(i, f, name){
+  const e = PED[i], inp = pedit.querySelector(`[data-pf="${i}:${f}"]`);
+  inp.value = name;
+  if (f === 'sp'){
+    e.sp = name; document.getElementById('psg' + i).innerHTML = '';
+    if (Number.isInteger(e.level)){ const [lo, hi] = statRange(name, 'hp', e.level); if (lo === hi){ e.hp = lo; pedit.querySelector(`[data-pf="${i}:hp"]`).value = lo; } }
+    refreshCard(i);
+  } else {
+    const k = +f.slice(2); e.mv[k] = name; document.getElementById('pmg' + i).innerHTML = '';
+    const nx = pedit.querySelector(`[data-pf="${i}:mv${k + 1}"]`); if (nx) nx.focus();
+  }
+}
+// 下書き → [エラーの一覧, 保存する形のパーティ]
+function readParty(){
+  const out = [], errs = [];
+  PED.forEach((e, i) => {
+    const n = `${i+1}匹目`;
+    if (!SPD[e.sp]){ errs.push(`${n}: ポケモン名を候補から選んでください。`); return; }
+    const ent = {sp:e.sp, level:e.level, ability:e.ability, gender:e.gender, moves:[]};
+    if (!(Number.isInteger(e.level) && e.level >= 1 && e.level <= 100)) errs.push(`${n}: レベルは1〜100で入れてください。`);
+    for (const [k, l] of PSTATS){ if (!(Number.isInteger(e[k]) && e[k] >= 1 && e[k] <= 999)) errs.push(`${n}: ${l}の数値を入れてください。`); ent[k] = e[k]; }
+    e.mv.forEach((name, k) => {
+      if (!kana(name)) return;
+      const id = MV_BY_KEY.get(kana(name));
+      if (id == null) errs.push(`${n}: 技${k+1}「${name}」が見つかりません。候補から選んでください。`);
+      else if (ent.moves.includes(id)) errs.push(`${n}: ${MV[id].ja}が重なっています。`);
+      else ent.moves.push(id);
+    });
+    if (!ent.moves.length && !e.mv.some(x => kana(x))) errs.push(`${n}: 技を1つ以上入れてください。`);
+    out.push(ent);
+  });
+  if (!errs.length && new Set(out.map(e => e.sp)).size < 3) errs.push('同じポケモンは2匹入れられません(バトルタワーのルール)。');
+  return [errs, out];
+}
+function partyAct(act){
+  if (act === 'cancel') return closeParty();
+  if (act === 'default'){ PED = draftOf(DEFAULT_PARTY); return drawParty(); }
+  const [errs, list] = readParty();
+  if (errs.length || !partyOk(list)){ document.getElementById('pe-err').innerHTML = (errs.length ? errs : ['入力内容を確かめてください。']).map(x => `<div>${esc(x)}</div>`).join(''); return; }
+  try { localStorage.setItem(PARTY_KEY, JSON.stringify(list)); } catch(e){}
+  applyParty(list);
+  // 自分側の状態は新しいパーティに合わせて作り直す(取り消しの履歴は前のパーティのものなので消す)
+  Object.assign(S, ourDefaults()); S.stages = blank().stages; S.field = FIELD_KEYS[0]; S.switchFrom = null; S.hist = [];
+  S.slots.forEach(sl => { sl.hints = []; sl.hintAll = null; sl.likWarn = null; });
+  S.log.push({t:S.log.length+1, txt:`自分のパーティ: ${list.map(e => e.sp).join('・')}`});
+  closeParty(); render();
+}
+pedit.addEventListener('input', ev => {
+  const pf = ev.target.dataset.pf; if (!pf || !PED) return;
+  const k = pf.indexOf(':'), i = +pf.slice(0, k), f = pf.slice(k + 1), e = PED[i], v = ev.target.value;
+  if (f === 'sp'){ e.sp = SP_BY_KEY.get(kana(v)) || v; peSugg(i, f, v); refreshCard(i); }
+  else if (f.startsWith('mv')){ e.mv[+f.slice(2)] = v; peSugg(i, f, v); }
+  else if (f === 'ability' || f === 'gender') e[f] = v;
+  else { e[f] = v === '' ? null : Math.round(+v); refreshRanges(i); }
+});
+// 入力を終えたら、ひらがなで打った名前を正式な表記に直す
+pedit.addEventListener('change', ev => {
+  const pf = ev.target.dataset.pf; if (!pf || !PED) return;
+  const k = pf.indexOf(':'), f = pf.slice(k + 1), key = kana(ev.target.value);
+  if (f === 'sp' && SP_BY_KEY.has(key)) ev.target.value = SP_BY_KEY.get(key);
+  else if (f.startsWith('mv') && MV_BY_KEY.has(key)) ev.target.value = MV[MV_BY_KEY.get(key)].ja;
+});
+pedit.addEventListener('keydown', ev => {
+  const pf = ev.target.dataset && ev.target.dataset.pf; if (!pf || ev.key !== 'Enter') return;
+  const k = pf.indexOf(':'), f = pf.slice(k + 1);
+  if (f === 'sp' || f.startsWith('mv')){ const first = pedit.querySelector(`#${f === 'sp' ? 'psg' : 'pmg'}${pf.slice(0, k)} button`); if (first){ ev.preventDefault(); first.click(); } }
+});
 
 // ---------- イベント ----------
 document.addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b) return;
   const d = b.dataset;
+  if (b.id === 'party-open') return PED ? closeParty() : openParty();
+  if (d.pact) return partyAct(d.pact);
+  if (d.ppick){ const [i, f, ...r] = d.ppick.split(':'); return pePick(+i, f, r.join(':')); }
+  if (d.oside){ snapshot(); S.oside[d.oside] = 0; return render(); }
   if (d.field) return setField(d.field);
   if (d.our) return useOur(+d.our);
-  if (d.stageReset !== undefined){ snapshot(); Object.assign(getStages(), {def:0, spd:0, eva:0}); S.log.push({t:S.log.length+1, txt:`${ME[S.field].name}の能力ランクをリセット`}); return render(); }
+  if (d.stageReset !== undefined){ snapshot(); Object.assign(getStages(), ZST()); S.log.push({t:S.log.length+1, txt:`${P[S.field].name}の能力ランクをリセット`}); return render(); }
   if (d.estReset !== undefined){ const sl = S.slots[+d.estReset]; snapshot(); sl.st = ZST(); sl.tormented = false; S.log.push({t:S.log.length+1, txt:`${sl.sp}の能力ランク・いちゃもんをリセット`}); return render(); }
   if (d.stage){ const [k,v] = d.stage.split(':'); const st = getStages(); snapshot(); st[k] = Math.max(-6, Math.min(6, st[k] + (+v))); return render(); }
   if (d.hintApply){ const [i,m] = d.hintApply.split(':').map(Number); return applyHint(i, m); }
@@ -1478,7 +1762,7 @@ document.addEventListener('click', ev => {
   if (d.act === 'clear-sample'){ const st = S.streak; S = blank(); S.streak = st; render(); document.getElementById('q0').focus(); return; }
 });
 document.getElementById('undo').addEventListener('click', undo);
-document.getElementById('our-full').addEventListener('click', () => { snapshot(); S.hp[S.field] = OUR_MAX[S.field]; render(); });
+document.getElementById('our-full').addEventListener('click', () => { snapshot(); S.hp[S.field] = P[S.field].hp; render(); });
 document.getElementById('next').addEventListener('click', nextBattle);
 document.getElementById('streak-inc').addEventListener('click', () => { snapshot(); S.streak++; render(); });
 document.getElementById('streak-dec').addEventListener('click', () => { snapshot(); S.streak = Math.max(0, S.streak-1); render(); });
@@ -1494,7 +1778,8 @@ tbar.addEventListener('input', ev => { if (ev.target.id === 'tq') renderTsugg(ev
 tbar.addEventListener('keydown', ev => { if (ev.target.id === 'tq' && ev.key === 'Enter'){ const f = document.querySelector('#tsg button'); if (f) f.click(); } });
 document.addEventListener('change', ev => {
   const t = ev.target, f = S.field;
-  if (t.id === 'our-hp'){ snapshot(); S.hp[f] = Math.max(0, Math.min(OUR_MAX[f], Math.round(+t.value || 0))); return render(); }
+  if (t.closest('#pedit')) return;
+  if (t.id === 'our-hp'){ snapshot(); S.hp[f] = Math.max(0, Math.min(P[f].hp, Math.round(+t.value || 0))); return render(); }
   if (t.id === 'our-status'){ snapshot(); S.ostatus[f] = t.value; return render(); }
   if (t.id === 'our-sub'){ snapshot(); S.sub[f] = t.checked; return render(); }
   if (t.id === 'weather'){ snapshot(); S.weather = t.value; return render(); }
@@ -1509,7 +1794,7 @@ board.addEventListener('keydown', ev => {
   if (q !== undefined && ev.key === 'Enter'){ const first = document.querySelector(`#sg${q} button`); if (first) first.click(); }
 });
 document.addEventListener('keydown', ev => {
-  if (ev.target.matches('input,textarea')) return;
+  if (ev.target.matches('input,textarea,select')) return;
   if (ev.key === '1' || ev.key === '2' || ev.key === '3') setField(FIELD_KEYS[+ev.key-1]);
   else if ((ev.key === 'z' || ev.key === 'Z') && !ev.metaKey) undo();
   else if ((ev.metaKey || ev.ctrlKey) && ev.key === 'z') { ev.preventDefault(); undo(); }

@@ -1,6 +1,6 @@
 // run every set's every move once on the page path to catch other errors
 const {JSDOM} = require('jsdom');
-const html = require('fs').readFileSync('../index.html','utf8');
+const html = require('fs').readFileSync(require('path').join(__dirname, '../index.html'),'utf8');
 const dom = new JSDOM(html, {runScripts:'dangerously', url:'https://x.test/', pretendToBeVisual:true});
 const w = dom.window, d = w.document; w.matchMedia = () => ({matches:false}); w.scrollTo=()=>{};
 let errs = 0; w.console.error = (...a) => { if (errs++ < 3) console.log('CONSOLE.ERROR', String(a[0] && a[0].stack || a[0]).slice(0,300)); };
